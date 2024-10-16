@@ -2,7 +2,7 @@
   "name": "next-flask",
   "version": "0.1.0",
   "private": true,
-  "scripts": {   
+  "scripts": {
     "flask-dev": "pip install -r requirements.txt && set FLASK_DEBUG=1 && python -m flask --app api/index run -p 5328",
     "next-dev": "next dev",
     "dev": "concurrently \"pnpm run next-dev\" \"pnpm run flask-dev\"",
@@ -14,6 +14,7 @@
     "@types/node": "20.1.4",
     "@types/react": "18.2.6",
     "@types/react-dom": "18.2.4",
+    "@vercel/postgres": "^0.10.0",
     "autoprefixer": "10.4.14",
     "concurrently": "^8.0.1",
     "eslint": "8.40.0",
