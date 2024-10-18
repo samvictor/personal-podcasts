@@ -24,6 +24,21 @@ load_dotenv(dotenv_path=env_path)
 #     fine_use_small=True,
 # )
 
+from pathlib import Path
+from openai import OpenAI
+openai_key = os.environ.get('OPENAI_KEY')
+client = OpenAI(api_key=openai_key)
+
+speech_file_path = Path(__file__).parent / "speech.mp3"
+response = client.audio.speech.create(
+  model="tts-1",
+  voice="alloy",
+  input="Today is a wonderful day to build something people love!"
+)
+
+response.stream_to_file(speech_file_path)
+
+
 
 app = Flask(__name__)
 
@@ -71,6 +86,12 @@ def hello_world():
 def api_example():
     return {"message": "Hello from Flask!"}
 
+@app.route("/api/speech")
+def get_speech():
+    if speech_file_path.exists():
+        return send_file(speech_file_path, mimetype="audio/mpeg")
+    else:
+        return jsonify({"error": "Speech file not found"}), 404
 
 # @app.route("/api/bark")
 # def bark():
