@@ -108,3 +108,8 @@ def blob():
     response.headers.set('Content-Type', 'application/rss+xml')
 
     return response
+
+@app.route('/api/cron')
+def cron():
+    print('cron job running')
+    return jsonify({'message': 'Cron job executed successfully'})
