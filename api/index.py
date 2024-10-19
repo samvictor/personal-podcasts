@@ -84,13 +84,13 @@ def blob():
     print('response is', blobFiles)
     fg = FeedGenerator()
     fg.load_extension('podcast')
-    fg.id('http://lernfunk.de/media/654321')
-    fg.title('Some Testfeed')
-    fg.author( {'name':'John Doe','email':'john@example.de'} )
-    fg.link( href='http://example.com', rel='alternate' )
-    fg.logo('http://ex.com/logo.jpg')
-    fg.subtitle('This is a cool feed!')
-    fg.link( href='http://larskiesow.de/test.atom', rel='self' )
+    fg.id('testUsersPodcast')
+    fg.title('Sam\'s Personal Podcast')
+    fg.author( {'name':'Personal Podcasts','email':'samshandymansolutions@gmail.com'} )
+    fg.link( href='https://personal-podcasts.vercel.app', rel='alternate' )
+    fg.logo('http://example.com/logo.jpg')
+    fg.subtitle('Personal Podcasts by Sam')
+    # fg.link( href='http://larskiesow.de/test.atom', rel='self' )
     fg.language('en')
     for file in blobFiles: 
         if file.get('size') > 0:
@@ -103,7 +103,10 @@ def blob():
             # fe.description(file.description)
             # fe.author(name=file.author.name, email=file.author.email)
 
+    # write the rss to a file in the blob storage
+    vercel_blob.put(path='/rss/testUser/testRss.xml', data=fg.rss_str(pretty=True))
 
+    # send the rss as a response
     response = make_response(fg.rss_str(pretty=True))
     response.headers.set('Content-Type', 'application/rss+xml')
 
