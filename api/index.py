@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import Flask, jsonify, send_file, Response
+from flask import Flask, jsonify, send_file, Response, render_template
 import io
 
 # Load environment variables from .env.development.local file
@@ -81,4 +81,4 @@ def get_speech():
 def blob():
     resp = vercel_blob.list()
     print('response is', resp)
-    return render_template('index.html', files=resp.get('tests'))
+    return render_template('index.html', files=resp.get('blobs'))
