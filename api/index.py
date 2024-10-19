@@ -104,7 +104,9 @@ def blob():
             # fe.author(name=file.author.name, email=file.author.email)
 
     # write the rss to a file in the blob storage
-    vercel_blob.put(path='/rss/testUser/testRss.xml', data=fg.rss_str(pretty=True))
+    vercel_blob.put(path='/rss/testUser/testRss.xml', data=fg.rss_str(pretty=True), options={
+                "addRandomSuffix": "false",
+            })
 
     # send the rss as a response
     response = make_response(fg.rss_str(pretty=True))
