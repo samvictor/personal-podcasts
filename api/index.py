@@ -78,11 +78,10 @@ def get_speech():
     return Response(audio_content, mimetype="audio/mpeg")
 
 
-print('template folder is', app.template_folder)
 @app.route('/api/blob')
 def blob():
-    resp = vercel_blob.list()
-    print('response is', resp)
+    blobFiles = vercel_blob.list().get('blobs')
+    print('response is', blobFiles)
     fg = FeedGenerator()
     fg.load_extension('podcast')
     fg.id('http://lernfunk.de/media/654321')
@@ -93,7 +92,7 @@ def blob():
     fg.subtitle('This is a cool feed!')
     fg.link( href='http://larskiesow.de/test.atom', rel='self' )
     fg.language('en')
-    for file in resp.get('blobs'): # get_news() returns a list of articles from somewhere
+    for file in blobFiles: 
         if file.get('size') > 0:
             fe = fg.add_entry()
             fe.title(file.get('pathname'))
@@ -109,3 +108,8 @@ def blob():
     response.headers.set('Content-Type', 'application/rss+xml')
 
     return response
+
+@app.route('/api/cron')
+def cron():
+    print('cron job running')
+    return jsonify({'message': 'Cron job executed successfully'})
