@@ -10,6 +10,7 @@ import io
 env_path = Path('.') / '.env.development.local'
 load_dotenv(dotenv_path=env_path)
 
+import vercel_blob
 blob_key = os.environ.get('BLOB_READ_WRITE_TOKEN')
 
 from openai import OpenAI
@@ -74,3 +75,10 @@ def get_speech():
     audio_content.seek(0)
     
     return Response(audio_content, mimetype="audio/mpeg")
+
+
+@app.route('/api/blob')
+def blob():
+    resp = vercel_blob.list()
+    print('response is', resp)
+    return render_template('index.html', files=resp.get('tests'))
