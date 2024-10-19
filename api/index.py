@@ -10,6 +10,8 @@ import io
 env_path = Path('.') / '.env.development.local'
 load_dotenv(dotenv_path=env_path)
 
+blob_key = os.environ.get('BLOB_READ_WRITE_TOKEN')
+
 from openai import OpenAI
 openai_key = os.environ.get('OPENAI_KEY')
 client = OpenAI(api_key=openai_key)
