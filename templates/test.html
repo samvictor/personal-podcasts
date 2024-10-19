@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Index Page</title>
+</head>
+<body>
+    <h1>Files:</h1>
+    <form 
+        method="post" 
+        enctype="multipart/form-data" 
+        action="/upload"
+    >
+        <input type="file" class="form-control" name="file" required />
+        <button type="submit">
+            Upload
+        </button>
+    </form>
+    <table>
+        <tr>
+            <th>Content Disposition</th>
+            <th>Content Type</th>
+            <th>Pathname</th>
+            <th>Size</th>
+            <th>Uploaded At</th>
+            <th>URL</th>
+            <th>Actions</th>
+        </tr>
+        {% for file in files %}
+            <tr>
+                <td>{{ file.contentDisposition }}</td>
+                <td>{{ file.contentType }}</td>
+                <td>{{ file.pathname }}</td>
+                <td>{{ file.size }}</td>
+                <td>{{ file.uploadedAt }}</td>
+                <td>{{ file.url }}</td>
+                <td>
+                    <a href="{{ url_for('download', url=file.url) }}">Download</a>
+                    <a href="{{ url_for('delete', url=file.url) }}">Delete</a>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

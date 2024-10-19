@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import Flask, jsonify, send_file, Response, render_template
+from flask import Flask, jsonify, send_file, Response, make_response
+from feedgen.feed import FeedGenerator
 import io
 
 # Load environment variables from .env.development.local file
@@ -77,8 +78,34 @@ def get_speech():
     return Response(audio_content, mimetype="audio/mpeg")
 
 
+print('template folder is', app.template_folder)
 @app.route('/api/blob')
 def blob():
     resp = vercel_blob.list()
     print('response is', resp)
-    return render_template('index.html', files=resp.get('blobs'))
+    fg = FeedGenerator()
+    fg.load_extension('podcast')
+    fg.id('http://lernfunk.de/media/654321')
+    fg.title('Some Testfeed')
+    fg.author( {'name':'John Doe','email':'john@example.de'} )
+    fg.link( href='http://example.com', rel='alternate' )
+    fg.logo('http://ex.com/logo.jpg')
+    fg.subtitle('This is a cool feed!')
+    fg.link( href='http://larskiesow.de/test.atom', rel='self' )
+    fg.language('en')
+    for file in resp.get('blobs'): # get_news() returns a list of articles from somewhere
+        if file.get('size') > 0:
+            fe = fg.add_entry()
+            fe.title(file.get('pathname'))
+            fe.enclosure(url=file.get('url'), length=file.get('size'), type=file.get('contentType'))
+            fe.pubDate(file.get('uploadedAt'))
+            fe.link(href=file.get('url'))
+            fe.guid(file.get('url'), permalink=True) 
+            # fe.description(file.description)
+            # fe.author(name=file.author.name, email=file.author.email)
+
+
+    response = make_response(fg.rss_str(pretty=True))
+    response.headers.set('Content-Type', 'application/rss+xml')
+
+    return response
