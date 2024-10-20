@@ -8,8 +8,8 @@ from feedgen.feed import FeedGenerator
 from io import BytesIO
 import json
 import time
-import datetime
-from pydub import AudioSegment
+from datetime import datetime, date
+import wave
 
 # Load environment variables from .env.development.local file
 env_path = Path('.') / '.env.development.local'
@@ -41,7 +41,7 @@ def get_all_podcasts():
     connection = get_db_connection()
     if not connection:
         raise Exception("Unable to connect to the database")
-        return None;
+        return None
     try:
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute('SELECT * FROM podcasts;')
@@ -134,18 +134,23 @@ def get_audio_bytes_from_text(text="test", voice="alloy"):
     response = client.audio.speech.create(
         model="tts-1",
         voice=voice,
-        input=text
+        input=text,
+        response_format="wav"
     )
+
+    # print("content is", response.content)
+
     
-    audio_content = BytesIO(response.content)
+    # audio_content = BytesIO(response.content)
+    # print('content is', audio_content)
     # audio_content.seek(0)
     # return audio_content.read()
-    return audio_content
+    return response.content
 
 
 def generate_rss_text():
     blobFiles = vercel_blob.list({"prefix": "audio/"}).get('blobs')
-    print('response is', blobFiles)
+    # print('response is', blobFiles)
     fg = FeedGenerator()
     fg.load_extension('podcast')
     fg.id('testUsersPodcast')
@@ -154,7 +159,7 @@ def generate_rss_text():
     fg.link( href='https://personal-podcasts.vercel.app', rel='alternate' )
     fg.logo('http://example.com/logo.jpg')
     fg.subtitle('Personal Podcasts by Sam')
-    # fg.link( href='http://larskiesow.de/test.atom', rel='self' )
+    # fg.link( href='http://larskiesow.de/test.atom', rel='self' ) 
     fg.language('en')
     for file in blobFiles: 
         if file.get('contentType') and file.get('contentType')[0:5] == 'audio':
@@ -207,7 +212,7 @@ def get_speech():
     audio_bytes = get_audio_bytes_from_text(
         text="Hello, hello? Is this thing on? this is a test!",
         voice="alloy"
-    ).getvalue()    
+    )
     vercel_blob.put(path='/audio/testUser/podcastId/testAudio.mp3',
         data=audio_bytes,
         options={
@@ -247,39 +252,128 @@ def update_test():
         text="Hi, I'm Shimmer. Nice to meet you, too!",
         voice="shimmer"
     )
-    
-    alloy_segment = AudioSegment.from_file(alloy_audio_content, format='mp3')  # Change format if necessary
-    shimmer_segment = AudioSegment.from_file(shimmer_audio_content, format='mp3')
-    combined_segment = alloy_segment + shimmer_segment
 
+    
+    # params_set = False
+    # temp_file = BytesIO()
+    # with wave.open(temp_file, 'wb') as temp_input:
+    #     with wave.open(alloy_audio_content, 'rb') as w:
+    #         if not params_set:
+    #             temp_input.setparams(w.getparams())
+    #             params_set = True
+    #         temp_input.writeframes(w.readframes(w.getnframes()))
+    #     with wave.open(shimmer_audio_content, 'rb') as w:
+    #         if not params_set:
+    #             temp_input.setparams(w.getparams())
+    #             params_set = True
+    #         temp_input.writeframes(w.readframes(w.getnframes()))
+
+    #move the cursor back to the beginning of the "file"
+    # temp_file.seek(0)
+    # combined_audio_bytes = temp_file
+    """
     combined_audio_bytes = BytesIO()
-    combined_segment.export(combined_audio_bytes, format='mp3')
+    # combined_audio_bytes.seek(0)
+
+    alloy_audio_content.seek(0)
+    shimmer_audio_content.seek(0)
+    with wave.open(alloy_audio_content, 'rb') as wav1:
+        # with wave.open(shimmer_audio_content, 'wb') as wav2:
+        #     wav2.setparams(wav1.getparams())
+        #     wav2.writeframes(wav1.readframes(wav1.getnframes()))
+        with wave.open(shimmer_audio_content, 'rb') as wav2:
+            # Ensure both audio files have the same parameters
+            params1 = wav1.getparams()
+            params2 = wav2.getparams()
+            print("File 1 params:", params1)
+            print("File 2 params:", params2) 
+
+            if wav1.getparams() != wav2.getparams():
+                raise ValueError("WAV data has different parameters and cannot be combined.")
+
+            # Create an output stream to hold the combined audio
+
+            with wave.open(combined_audio_bytes, 'wb') as output_wav:
+                output_wav.setparams(wav1.getparams())  # Set the output WAV parameters
+
+                # Write frames from the first audio file
+                output_wav.writeframes(wav1.readframes(wav1.getnframes()))
+
+                # Write frames from the second audio file
+                output_wav.writeframes(wav2.readframes(wav2.getnframes()))
+
+    # alloy_segment = AudioSegment.from_file(alloy_audio_content, format='mp3')  # Change format if necessary
+    # shimmer_segment = AudioSegment.from_file(shimmer_audio_content, format='mp3')
+    # combined_segment = alloy_segment + shimmer_segment
+
+    # combined_audio_bytes = BytesIO()
+    # combined_segment.export(combined_audio_bytes, format='mp3') 
 
     combined_audio_data = combined_audio_bytes.getvalue()
-    audio_duration = combined_audio_bytes.duration_seconds
+    audio_duration = combined_audio_bytes.duration_seconds"""
+    # audio_duration = alloy_audio_content
+    audio_duration  =0
+
 
     audio_file_name = "daily_update_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".mp3"
     file_path = "/audio/testUser/podcastId/" + audio_file_name
-    vercel_blob.put(path=file_path,
-        data=audio_bytes,
+
+    # fade out
+    print("content length", len(alloy_audio_content))
+    print("last 50 bytes", alloy_audio_content[-50:])
+    alloy_length = len(alloy_audio_content)
+    alloy_list = list(alloy_audio_content)
+
+    change_range = 100
+    for i in range(0, change_range):
+        alloy_list[alloy_length - i - 1] = int(alloy_list[alloy_length - i - 1] * 0)
+
+    alloy_audio_content = bytes(alloy_list)
+    print("last 50 bytes after", alloy_audio_content[-50:])
+
+    
+    shimmer_length = len(shimmer_audio_content)
+    shimmer_list = list(shimmer_audio_content)
+
+    # change_range = 2000 
+    for i in range(0, change_range):
+        shimmer_list[i] = int(shimmer_list[i] * 0)
+
+    shimmer_audio_content = bytes(shimmer_list)
+
+    
+
+    blob_response = vercel_blob.put(path=file_path,
+        data=alloy_audio_content + shimmer_audio_content,
         options={
             "addRandomSuffix": "false",
         })
+    # print("blob response",    blob_response)
+    
+    # file_head = vercel_blob.head(file_path)
+    # print('file head is', file_head)
     audio_url = vercel_blob_base + file_path
 
-    month_as_text = datetime.date.today().strftime("/B")
+    month_as_text = date.today().strftime("/B")
     date_as_text = month_as_text + " " + time.strftime(" %d, %Y")
     time_as_text = time.strftime("%H:%M")
     db_insert(table_name="episodes", data={
         "podcast_id": 1, 
-        "title": "Daily Podcast for {date_as_text}", 
-        "description": "This is your daily podcast for {date_as_text}. It was created at {time_as_text}", 
+        "user_id": "testUser",
+        "title": f"Daily Podcast for {date_as_text}", 
+        "description": f"This is your daily podcast for {date_as_text}. It was created at {time_as_text}", 
         "file_name": audio_file_name,
         "url": audio_url,
-        "duration": duration,
+        "duration": audio_duration,
     })
     rss_text = generate_rss_text()
     # write the rss to a file in the blob storage
-    vercel_blob.put(path='/rss/testUser/testRss.xml', data=rss_text, options={
+    vercel_blob.put(path='/rss/testUser/podcastId/testRss.xml', data=rss_text, options={
                 "addRandomSuffix": "false",
             })
+    
+    # send the rss as a response
+    response = make_response(rss_text)
+    response.headers.set('Content-Type', 'application/rss+xml')
+
+    return response
