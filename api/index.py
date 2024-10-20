@@ -243,108 +243,101 @@ def cron():
 
 @app.route('/api/update-test')
 def update_test():
-    alloy_audio_content = get_audio_bytes_from_text(
-        text="Hello, my name is Alloy. Nice to meet you!",
-        voice="alloy"
-    )
+    # alloy_audio_content = get_audio_bytes_from_text(
+    #     text="Hello, my name is Alloy. Nice to meet you!",
+    #     voice="alloy"
+    # )
 
-    shimmer_audio_content = get_audio_bytes_from_text(
-        text="Hi, I'm Shimmer. Nice to meet you, too!",
-        voice="shimmer"
-    )
+    # shimmer_audio_content = get_audio_bytes_from_text(
+    #     text="Hi, I'm Shimmer. Nice to meet you, too!",
+    #     voice="shimmer"
+    # )
 
+    # echo_audio_content = get_audio_bytes_from_text(
+    #     text="Hey, guys! I'm Echo and I'm just happy to be here",
+    #     voice="echo"
+    # )
+
+    # text_list = ["Hello, my name is Alloy. Nice to meet you!", 
+    #              "Hi, I'm Shimmer. Nice to meet you, too!", 
+    #              "Hey, guys! I'm Echo and I'm just happy to be here"]
+    # voice_list = ["alloy", "shimmer", "echo"]
+    #  ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+
+    text_list = []
+    voice_list = []
+
+    podcast_script = [
+        {"text": "Welcome to our podcast! I'm Alloy, and today we're discussing the latest trends in sustainable materials. It's a hot topic that affects us all.", "voice": "Alloy"},
+        {"text": "That's a fascinating topic, Alloy. I'm Echo, and I think it's important to reflect on how our choices impact the environment and future generations.", "voice": "Echo"},
+        {"text": "Absolutely, Echo! I’m Fable, and I believe that every trend tells a story about our values and priorities. Sustainability is not just a trend; it's a lifestyle.", "voice": "Fable"},
+        {"text": "Exactly, Fable! As someone who focuses on innovation, I'm Onyx. I'm excited to delve into how these materials can change industries, especially in construction and fashion.", "voice": "Onyx"},
+        {"text": "Nice points, everyone! I'm Nova, and I think we should also explore the role of technology in advancing sustainable practices, like recycling and renewable energy.", "voice": "Nova"},
+        {"text": "Great idea, Nova! I'm Shimmer, and I think how we communicate these changes can really make a difference. We need to inspire others to adopt these practices.", "voice": "Shimmer"},
+        {"text": "Speaking of communication, Echo, how can we ensure our messages resonate with different audiences?", "voice": "Alloy"},
+        {"text": "That's a crucial question, Alloy! One approach is to use storytelling. When people connect with a story, they're more likely to engage. Right, Fable?", "voice": "Echo"},
+        {"text": "Absolutely, Echo! Stories can illustrate the real impact of sustainable choices. We need to highlight both successes and challenges we face.", "voice": "Fable"},
+        {"text": "And let's not forget the role of social media in spreading these stories. I'm Onyx, and I think platforms give us a unique way to reach a wider audience.", "voice": "Onyx"},
+        {"text": "True, Onyx! I'm Nova, and it's exciting how influencers and advocates are leveraging these platforms to push for change.", "voice": "Nova"},
+        {"text": "And as we make these changes, we must celebrate our victories, no matter how small. Shimmering moments of progress can inspire others!", "voice": "Shimmer"},
+        {"text": "Well said, Shimmer. Let's keep the conversation going and encourage our listeners to think about their choices too. Thank you all for sharing your insights!", "voice": "Alloy"}
+    ]
+
+    for script_line in podcast_script:
+        text_list.append(script_line.get("text"))
+        voice_list.append(script_line.get("voice").lower())
+        
+    audio_bytes = list(map(get_audio_bytes_from_text, text_list, voice_list))
+
+    # audio_bytes = [alloy_audio_content, shimmer_audio_content, echo_audio_content]
+    def fade_in_audio(audio_bytes):
+        # mute first and last 100 bytes of audio (set to 0)
+        # helps with combining clips without popping
+        # actually removing some kind of meta data from beginning
+        # can't do this to first clip
+
+        CHANGE_RANGE = 100
+        audio_length = len(audio_bytes)
+        if audio_length <= CHANGE_RANGE:
+            return audio_bytes
+        
+        audio_list = list(audio_bytes)
+
+        for i in range(0, CHANGE_RANGE):
+            # mute first 100 bytes
+            audio_list[i] = 0
+        #     # mute last 100 bytes
+            audio_list[audio_length - i - 1] = 0
+
+        return bytes(audio_list)
     
-    # params_set = False
-    # temp_file = BytesIO()
-    # with wave.open(temp_file, 'wb') as temp_input:
-    #     with wave.open(alloy_audio_content, 'rb') as w:
-    #         if not params_set:
-    #             temp_input.setparams(w.getparams())
-    #             params_set = True
-    #         temp_input.writeframes(w.readframes(w.getnframes()))
-    #     with wave.open(shimmer_audio_content, 'rb') as w:
-    #         if not params_set:
-    #             temp_input.setparams(w.getparams())
-    #             params_set = True
-    #         temp_input.writeframes(w.readframes(w.getnframes()))
+    def sum_bytes(bytes_list):
+        if not bytes_list or len(bytes_list) < 1:
+            raise ValueError("Bad input for bytes_list")
+        if len(bytes_list) == 1:
+            return bytes_list[0]
 
-    #move the cursor back to the beginning of the "file"
-    # temp_file.seek(0)
-    # combined_audio_bytes = temp_file
-    """
-    combined_audio_bytes = BytesIO()
-    # combined_audio_bytes.seek(0)
+        combined_bytes = bytes_list[0]
+        for i in range(1, len(bytes_list)):
+            combined_bytes += bytes_list[i]
+        
+        return combined_bytes
 
-    alloy_audio_content.seek(0)
-    shimmer_audio_content.seek(0)
-    with wave.open(alloy_audio_content, 'rb') as wav1:
-        # with wave.open(shimmer_audio_content, 'wb') as wav2:
-        #     wav2.setparams(wav1.getparams())
-        #     wav2.writeframes(wav1.readframes(wav1.getnframes()))
-        with wave.open(shimmer_audio_content, 'rb') as wav2:
-            # Ensure both audio files have the same parameters
-            params1 = wav1.getparams()
-            params2 = wav2.getparams()
-            print("File 1 params:", params1)
-            print("File 2 params:", params2) 
 
-            if wav1.getparams() != wav2.getparams():
-                raise ValueError("WAV data has different parameters and cannot be combined.")
-
-            # Create an output stream to hold the combined audio
-
-            with wave.open(combined_audio_bytes, 'wb') as output_wav:
-                output_wav.setparams(wav1.getparams())  # Set the output WAV parameters
-
-                # Write frames from the first audio file
-                output_wav.writeframes(wav1.readframes(wav1.getnframes()))
-
-                # Write frames from the second audio file
-                output_wav.writeframes(wav2.readframes(wav2.getnframes()))
-
-    # alloy_segment = AudioSegment.from_file(alloy_audio_content, format='mp3')  # Change format if necessary
-    # shimmer_segment = AudioSegment.from_file(shimmer_audio_content, format='mp3')
-    # combined_segment = alloy_segment + shimmer_segment
-
-    # combined_audio_bytes = BytesIO()
-    # combined_segment.export(combined_audio_bytes, format='mp3') 
-
-    combined_audio_data = combined_audio_bytes.getvalue()
-    audio_duration = combined_audio_bytes.duration_seconds"""
-    # audio_duration = alloy_audio_content
+    combined_audio_bytes = audio_bytes[0]
+    if len(audio_bytes) > 1:
+        combined_audio_bytes += sum_bytes( list(map(fade_in_audio, audio_bytes[1:])))
     audio_duration  =0
 
 
     audio_file_name = "daily_update_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".mp3"
     file_path = "/audio/testUser/podcastId/" + audio_file_name
 
-    # fade out
-    print("content length", len(alloy_audio_content))
-    print("last 50 bytes", alloy_audio_content[-50:])
-    alloy_length = len(alloy_audio_content)
-    alloy_list = list(alloy_audio_content)
-
-    change_range = 100
-    for i in range(0, change_range):
-        alloy_list[alloy_length - i - 1] = int(alloy_list[alloy_length - i - 1] * 0)
-
-    alloy_audio_content = bytes(alloy_list)
-    print("last 50 bytes after", alloy_audio_content[-50:])
-
-    
-    shimmer_length = len(shimmer_audio_content)
-    shimmer_list = list(shimmer_audio_content)
-
-    # change_range = 2000 
-    for i in range(0, change_range):
-        shimmer_list[i] = int(shimmer_list[i] * 0)
-
-    shimmer_audio_content = bytes(shimmer_list)
 
     
 
     blob_response = vercel_blob.put(path=file_path,
-        data=alloy_audio_content + shimmer_audio_content,
+        data=combined_audio_bytes,
         options={
             "addRandomSuffix": "false",
         })
