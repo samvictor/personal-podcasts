@@ -346,7 +346,7 @@ def update():
     text_list = []
     voice_list = []
 
-    ai_response_text = message_ai(directive + article_section_of_text_for_ai)
+    ai_response_text = message_ai(directive + article_section_of_text_for_ai + " at the end there should be a Daily Joke section and a Daily Fun Fact section")
     podcast_script = json.loads(ai_response_text)
     print("podcast script is", json.dumps(podcast_script, indent=4)) 
 
