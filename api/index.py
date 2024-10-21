@@ -164,13 +164,27 @@ def generate_rss_text():
     fg.language('en')
     for file in blobFiles: 
         if file.get('contentType') and file.get('contentType')[0:5] == 'audio':
+            # print("file is", file) 
+            # print("updated at", file.get("uploadedAt")) 
+            # process time stamp into something more human readable
+            timestamp_str = file.get("uploadedAt").replace("Z", "+00:00")
+            dt = datetime.fromisoformat(timestamp_str)
+            human_readable_date = dt.strftime("%B %d, %Y")
+            human_readable_time = dt.strftime("%I:%M %p")
+
             fe = fg.add_entry()
-            fe.title(file.get('pathname'))
+            fe.title("Sam's Daily Podcast for " + human_readable_date)
             fe.enclosure(url=file.get('url'), length=file.get('size'), type=file.get('contentType'))
             fe.pubDate(file.get('uploadedAt'))
             fe.link(href=file.get('url'))
             fe.guid(file.get('url'), permalink=True)  
-            # fe.description(file.description)
+            fe.description(f"""Sam's Daily Podcast for {human_readable_date}. 
+This podcast was created entirely by AI. 
+It covers the latest news stories and headlines. 
+It was created on {human_readable_time}. 
+The code to create it was written by Sam Inniss.
+Enjoy! (0_0)b  😎
+            """)
             # fe.author(name=file.author.name, email=file.author.email)
     return fg.rss_str(pretty=True)
 
