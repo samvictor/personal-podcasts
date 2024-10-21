@@ -2,14 +2,13 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 import psycopg2
-from psycopg2.extras import RealDictCursor, Json
+from psycopg2.extras import RealDictCursor
 from flask import Flask, jsonify, send_file, Response, make_response
 from feedgen.feed import FeedGenerator
-from io import BytesIO
 import json
 import time
 from datetime import datetime, date
-import wave
+import requests
 
 # Load environment variables from .env.development.local file
 env_path = Path('.') / '.env.development.local'
@@ -20,7 +19,9 @@ blob_key = os.environ.get('BLOB_READ_WRITE_TOKEN')
 
 from openai import OpenAI
 openai_key = os.environ.get('OPENAI_KEY')
-client = OpenAI(api_key=openai_key)
+openai_client = OpenAI(api_key=openai_key)
+
+news_api_key = os.environ.get('NEWS_API_KEY')
 
 vercel_blob_base = "https://1rfdbdyvforthaxq.public.blob.vercel-storage.com"
 
@@ -131,7 +132,7 @@ def db_update(table_name="podcasts", id_column_name="podcast_id", id=0, data={})
 
 voiceOptions = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
 def get_audio_bytes_from_text(text="test", voice="alloy"):
-    response = client.audio.speech.create(
+    response = openai_client.audio.speech.create(
         model="tts-1",
         voice=voice,
         input=text,
@@ -172,6 +173,28 @@ def generate_rss_text():
             # fe.description(file.description)
             # fe.author(name=file.author.name, email=file.author.email)
     return fg.rss_str(pretty=True)
+
+
+def message_ai(message="", role="system", chat_history=[]):
+    # chat history must be a list of dicts. Each dict must have role and system
+    # not including latest message
+
+    message_list = [{"role": role, "content": message}] + chat_history
+
+    response_message = ""
+    # try:
+    completion = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=message_list
+    )
+
+    response_message = completion.choices[0].message.content
+    # except Exception as e:
+    #     print("error getting message from ai", e)
+    #     raise Exception("error getting message from AI")
+
+    # print(response_message)
+    return response_message
 
 # Flask app
 app = Flask(__name__)
@@ -241,8 +264,41 @@ def cron():
     print('cron job running')
     return jsonify({'message': 'Cron job executed successfully'})
 
-@app.route('/api/update-test')
-def update_test():
+@app.route('/api/news-test')
+def news_test():
+    url = ('https://newsapi.org/v2/top-headlines?'
+       'country=us&'
+       'pageSize=5&'
+       f'apiKey={news_api_key}') 
+
+    response = requests.get(url)
+
+    print("response is", response.json()) 
+
+    first_article = response.json().get("articles")[0]
+    return f"<p>{first_article.get("title")}<br/>{first_article.get("description")}</p>"
+
+# "alloy", "echo", "fable", "nova", "shimmer".  
+voice1 = "fable"
+voice2 = "nova"
+directive = f"""Create a very short podcast using these characters: "Samuel" and "Samantha". 
+They should introduce themselves. As a podcast, it should be realistic, not fantastical. 
+Your response should only be valid JSON. It should be a list of dictionaries. 
+Each dictionary should contain 2 keys: "text" for what that character says and "voice" for which character is speaking. 
+The voice for "Samuel" should be "{voice1}", and the voice for "Samantha" should be "{voice2}".
+"{voice1}" and "{voice2}" are your only options for the contents of the "voice" field.
+I will be putting your response directly into a json parser so don't add anything else other than valid json."""
+
+@app.route('/api/open-test')
+def open_test():
+    response_message = message_ai(directive)
+
+    print(json.loads(response_message))
+    # print(response_message)
+    return f"<p>{response_message}</p>"
+
+@app.route('/api/update') 
+def update():
     # alloy_audio_content = get_audio_bytes_from_text(
     #     text="Hello, my name is Alloy. Nice to meet you!",
     #     voice="alloy"
@@ -264,24 +320,51 @@ def update_test():
     # voice_list = ["alloy", "shimmer", "echo"]
     #  ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
 
+
+    url = ('https://newsapi.org/v2/top-headlines?'
+       'country=us&'
+       'pageSize=5&'
+       f'apiKey={news_api_key}') 
+
+    response = requests.get(url)
+
+    print("response is", response.json()) 
+
+    
+
+    # first_article = response.json().get("articles")[0]
+    # return f"<p>{first_article.get("title")}<br/>{first_article.get("description")}</p>"
+
+    articles = response.json().get("articles")
+    article_section_of_text_for_ai = """ During the podcast, have the characters talk about these articles. 
+    They are top headlines and the description of the article: """
+    for this_article in articles:
+        article_section_of_text_for_ai += f"Title: {this_article.get("title")}, Description: {this_article.get("description")}. "
+
+
+
     text_list = []
     voice_list = []
 
-    podcast_script = [
-        {"text": "Welcome to our podcast! I'm Alloy, and today we're discussing the latest trends in sustainable materials. It's a hot topic that affects us all.", "voice": "Alloy"},
-        {"text": "That's a fascinating topic, Alloy. I'm Echo, and I think it's important to reflect on how our choices impact the environment and future generations.", "voice": "Echo"},
-        {"text": "Absolutely, Echo! I’m Fable, and I believe that every trend tells a story about our values and priorities. Sustainability is not just a trend; it's a lifestyle.", "voice": "Fable"},
-        {"text": "Exactly, Fable! As someone who focuses on innovation, I'm Onyx. I'm excited to delve into how these materials can change industries, especially in construction and fashion.", "voice": "Onyx"},
-        {"text": "Nice points, everyone! I'm Nova, and I think we should also explore the role of technology in advancing sustainable practices, like recycling and renewable energy.", "voice": "Nova"},
-        {"text": "Great idea, Nova! I'm Shimmer, and I think how we communicate these changes can really make a difference. We need to inspire others to adopt these practices.", "voice": "Shimmer"},
-        {"text": "Speaking of communication, Echo, how can we ensure our messages resonate with different audiences?", "voice": "Alloy"},
-        {"text": "That's a crucial question, Alloy! One approach is to use storytelling. When people connect with a story, they're more likely to engage. Right, Fable?", "voice": "Echo"},
-        {"text": "Absolutely, Echo! Stories can illustrate the real impact of sustainable choices. We need to highlight both successes and challenges we face.", "voice": "Fable"},
-        {"text": "And let's not forget the role of social media in spreading these stories. I'm Onyx, and I think platforms give us a unique way to reach a wider audience.", "voice": "Onyx"},
-        {"text": "True, Onyx! I'm Nova, and it's exciting how influencers and advocates are leveraging these platforms to push for change.", "voice": "Nova"},
-        {"text": "And as we make these changes, we must celebrate our victories, no matter how small. Shimmering moments of progress can inspire others!", "voice": "Shimmer"},
-        {"text": "Well said, Shimmer. Let's keep the conversation going and encourage our listeners to think about their choices too. Thank you all for sharing your insights!", "voice": "Alloy"}
-    ]
+    ai_response_text = message_ai(directive + article_section_of_text_for_ai)
+    podcast_script = json.loads(ai_response_text)
+    print("podcast script is", json.dumps(podcast_script, indent=4)) 
+
+    # podcast_script = [
+    #     {"text": "Welcome to our podcast! I'm Alloy, and today we're discussing the latest trends in sustainable materials. It's a hot topic that affects us all.", "voice": "Alloy"},
+    #     {"text": "That's a fascinating topic, Alloy. I'm Echo, and I think it's important to reflect on how our choices impact the environment and future generations.", "voice": "Echo"},
+    #     {"text": "Absolutely, Echo! I’m Fable, and I believe that every trend tells a story about our values and priorities. Sustainability is not just a trend; it's a lifestyle.", "voice": "Fable"},
+    #     {"text": "Exactly, Fable! As someone who focuses on innovation, I'm Onyx. I'm excited to delve into how these materials can change industries, especially in construction and fashion.", "voice": "Onyx"},
+    #     {"text": "Nice points, everyone! I'm Nova, and I think we should also explore the role of technology in advancing sustainable practices, like recycling and renewable energy.", "voice": "Nova"},
+    #     {"text": "Great idea, Nova! I'm Shimmer, and I think how we communicate these changes can really make a difference. We need to inspire others to adopt these practices.", "voice": "Shimmer"},
+    #     {"text": "Speaking of communication, Echo, how can we ensure our messages resonate with different audiences?", "voice": "Alloy"},
+    #     {"text": "That's a crucial question, Alloy! One approach is to use storytelling. When people connect with a story, they're more likely to engage. Right, Fable?", "voice": "Echo"},
+    #     {"text": "Absolutely, Echo! Stories can illustrate the real impact of sustainable choices. We need to highlight both successes and challenges we face.", "voice": "Fable"},
+    #     {"text": "And let's not forget the role of social media in spreading these stories. I'm Onyx, and I think platforms give us a unique way to reach a wider audience.", "voice": "Onyx"},
+    #     {"text": "True, Onyx! I'm Nova, and it's exciting how influencers and advocates are leveraging these platforms to push for change.", "voice": "Nova"},
+    #     {"text": "And as we make these changes, we must celebrate our victories, no matter how small. Shimmering moments of progress can inspire others!", "voice": "Shimmer"},
+    #     {"text": "Well said, Shimmer. Let's keep the conversation going and encourage our listeners to think about their choices too. Thank you all for sharing your insights!", "voice": "Alloy"}
+    # ]
 
     for script_line in podcast_script:
         text_list.append(script_line.get("text"))
@@ -290,6 +373,7 @@ def update_test():
     audio_bytes = list(map(get_audio_bytes_from_text, text_list, voice_list))
 
     # audio_bytes = [alloy_audio_content, shimmer_audio_content, echo_audio_content]
+    delay_length_between_audio_clips = 2000
     def fade_in_audio(audio_bytes):
         # mute first and last 100 bytes of audio (set to 0)
         # helps with combining clips without popping
@@ -308,6 +392,10 @@ def update_test():
             audio_list[i] = 0
         #     # mute last 100 bytes
             audio_list[audio_length - i - 1] = 0
+        
+        # add some empty space at the beginning
+        # to simulate a pause before speech
+        audio_list = [0] * delay_length_between_audio_clips + audio_list
 
         return bytes(audio_list)
     
