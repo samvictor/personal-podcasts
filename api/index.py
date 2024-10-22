@@ -6,7 +6,7 @@ from psycopg2.extras import RealDictCursor
 from flask import Flask, jsonify, send_file, Response, make_response
 from feedgen.feed import FeedGenerator
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import timezone
 import requests
 
@@ -191,7 +191,7 @@ def generate_rss_text():
     fg.language('en')
     for file in blobFiles: 
         if file.get('contentType') and file.get('contentType')[0:5] == 'audio':
-            print("file is", file) 
+            # print("file is", file) 
             # print("updated at", file.get("uploadedAt")) 
             # process time stamp into something more human readable
             timestamp_str = file.get("uploadedAt").replace("Z", "+00:00")
@@ -201,7 +201,8 @@ def generate_rss_text():
 
             fe = fg.add_entry()
             fe.title("Sam's Daily Podcast for " + human_readable_date)
-            fe.enclosure(url=file.get('url'), length=file.get('size'), type=file.get('contentType'))
+            # length=file.get('size'),
+            fe.enclosure(url=file.get('url'),  type=file.get('contentType'))
             fe.pubDate(file.get('uploadedAt'))
             fe.link(href=file.get('url'))
             fe.guid(file.get('url'), permalink=True)  
