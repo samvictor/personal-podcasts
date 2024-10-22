@@ -54,12 +54,36 @@ def get_all_podcasts():
     finally:
         connection.close()
 
+def get_last_n_episodes(num_episodes):
+    if not type(num_episodes) == int:
+        raise TypeError("num_episodes must be an int")
+    connection = get_db_connection()
+    if not connection:
+        raise Exception("Unable to connect to the database")
+    
+    try:
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("""
+                           SELECT * FROM episodes 
+                           ORDER BY created_at DESC
+                           LIMIT %s;
+                           """, (num_episodes, ))
+            result = cursor.fetchall()
+            for row in result:
+                print(row)
+            cursor.close()
+            episodes = [dict(row) for row in result] 
+            return episodes
+    finally:
+        connection.close()
+
+
 table_name_options = ["podcasts", "users", "episodes"]
 key_options = {
     "podcasts": ["user_id", "title", "description", 
                     "ai_directives_by_section", "rss_url", "cover_image_url"],
     "episodes": ["cover_image_url", "podcast_id", "user_id", "title", "description", 
-                    "file_name", "url", "duration"],
+                    "file_name", "url", "duration", "script_text"],
     "users": ["user_id", "username", "podcast_ids"]
 }
 
@@ -167,7 +191,7 @@ def generate_rss_text():
             # print("file is", file) 
             # print("updated at", file.get("uploadedAt")) 
             # process time stamp into something more human readable
-            timestamp_str = file.get("uploadedAt").replace("Z", "+00:00")
+            timestamp_str = file.get("uploadedAt").replace("Z", "-05:00")
             dt = datetime.fromisoformat(timestamp_str)
             human_readable_date = dt.strftime("%B %d, %Y")
             human_readable_time = dt.strftime("%I:%M %p")
@@ -181,7 +205,7 @@ def generate_rss_text():
             fe.description(f"""Sam's Daily Podcast for {human_readable_date}. 
 This podcast was created entirely by AI. 
 It covers the latest news stories and headlines. 
-It was created on {human_readable_time}. 
+It was created at {human_readable_time}. 
 The code to create it was written by Sam Inniss.
 Enjoy! (0_0)b  😎
             """)
@@ -295,7 +319,10 @@ def news_test():
 # "alloy", "echo", "fable", "nova", "shimmer".  
 voice1 = "fable"
 voice2 = "nova"
+
+human_readable_datetime = datetime.now().strftime("%B %d, %Y at %I:%M %p")
 directive = f"""Create a very short podcast using these characters: "Samuel" and "Samantha". 
+You are making a daily podcast that has a new episode every day. Today's date is {human_readable_datetime}.
 They should introduce themselves. As a podcast, it should be realistic, not fantastical. 
 Your response should only be valid JSON. It should be a list of dictionaries. 
 Each dictionary should contain 2 keys: "text" for what that character says and "voice" for which character is speaking. 
@@ -311,6 +338,12 @@ def open_test():
     # print(response_message)
     return f"<p>{response_message}</p>"
 
+@app.route('/api/eps-test')
+def eps_test():
+    eps = get_last_n_episodes(100)
+    print(eps)
+    return eps
+ 
 @app.route('/api/update') 
 def update():
     # alloy_audio_content = get_audio_bytes_from_text(
@@ -345,9 +378,14 @@ def update():
     print("response is", response.json()) 
 
     
+    # TODO get last n episodes
 
-    # first_article = response.json().get("articles")[0]
-    # return f"<p>{first_article.get("title")}<br/>{first_article.get("description")}</p>"
+    previous_eps = get_last_n_episodes(100)
+    previous_eps_as_text = json.dumps(previous_eps, default=str)
+    previous_eps_section = """Here are the last few episodes. 
+    Look at the scripts and make sure you don't repeat the same jokes and fun facts. 
+    Also, feel free to make references to the things you talked about yesterday: """ + previous_eps_as_text
+
 
     articles = response.json().get("articles")
     article_section_of_text_for_ai = """ During the podcast, have the characters talk about these articles. 
@@ -355,13 +393,16 @@ def update():
     for this_article in articles:
         article_section_of_text_for_ai += f"Title: {this_article.get("title")}, Description: {this_article.get("description")}. "
 
-
+    daily_jokes_and_fun_facts_section = " at the end there should be a Daily Joke section and a Daily Fun Fact section"
 
     text_list = []
     voice_list = []
 
-    ai_response_text = message_ai(directive + article_section_of_text_for_ai + " at the end there should be a Daily Joke section and a Daily Fun Fact section")
-    podcast_script = json.loads(ai_response_text)
+    script_text = message_ai(directive 
+                             + article_section_of_text_for_ai 
+                             + daily_jokes_and_fun_facts_section
+                             + previous_eps_section)
+    podcast_script = json.loads(script_text)
     print("podcast script is", json.dumps(podcast_script, indent=4)) 
 
     # podcast_script = [
@@ -449,7 +490,7 @@ def update():
     # print('file head is', file_head)
     audio_url = vercel_blob_base + file_path
 
-    month_as_text = date.today().strftime("/B")
+    month_as_text = date.today().strftime("%B")
     date_as_text = month_as_text + " " + time.strftime(" %d, %Y")
     time_as_text = time.strftime("%H:%M")
     db_insert(table_name="episodes", data={
@@ -460,6 +501,7 @@ def update():
         "file_name": audio_file_name,
         "url": audio_url,
         "duration": audio_duration,
+        "script_text": script_text,
     })
     rss_text = generate_rss_text()
     # write the rss to a file in the blob storage
