@@ -194,7 +194,7 @@ def generate_rss_text():
             # print("file is", file) 
             # print("updated at", file.get("uploadedAt")) 
             # process time stamp into something more human readable
-            timestamp_str = file.get("uploadedAt").replace("Z", "-09:00")
+            timestamp_str = file.get("uploadedAt").replace("Z", "+01:00")
             dt = datetime.fromisoformat(timestamp_str)
             human_readable_date = dt.strftime("%B %d, %Y")
             human_readable_time = dt.strftime("%I:%M %p")
@@ -210,7 +210,7 @@ This podcast was created entirely by AI.
 It covers the latest news stories and headlines. 
 It was created at {human_readable_time}. 
 The code to create it was written by Sam Inniss.
-Enjoy! (0_0)b  😎
+Enjoy!  😎
             """)
             # fe.author(name=file.author.name, email=file.author.email)
     return fg.rss_str(pretty=True)
