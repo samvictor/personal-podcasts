@@ -191,7 +191,7 @@ def generate_rss_text():
     fg.language('en')
     for file in blobFiles: 
         if file.get('contentType') and file.get('contentType')[0:5] == 'audio':
-            # print("file is", file) 
+            print("file is", file) 
             # print("updated at", file.get("uploadedAt")) 
             # process time stamp into something more human readable
             timestamp_str = file.get("uploadedAt").replace("Z", "+00:00")
