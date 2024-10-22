@@ -194,8 +194,8 @@ def generate_rss_text():
             # print("file is", file) 
             # print("updated at", file.get("uploadedAt")) 
             # process time stamp into something more human readable
-            timestamp_str = file.get("uploadedAt").replace("Z", "+01:00")
-            dt = datetime.fromisoformat(timestamp_str)
+            timestamp_str = file.get("uploadedAt").replace("Z", "+00:00")
+            dt = datetime.fromisoformat(timestamp_str) - timedelta(hours = 4)
             human_readable_date = dt.strftime("%B %d, %Y")
             human_readable_time = dt.strftime("%I:%M %p")
 
