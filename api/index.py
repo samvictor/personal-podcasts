@@ -323,7 +323,7 @@ def news_test():
 voice1 = "fable"
 voice2 = "nova"
 
-directive = f """Create a very short podcast using these characters: "Samuel" and "Samantha". 
+directive = f"""Create a very short podcast using these characters: "Samuel" and "Samantha". 
 You are making a daily podcast that has a new episode every day. 
 They should introduce themselves. As a podcast, it should be realistic, not fantastical. 
 Your response should only be valid JSON. It should be a list of dictionaries. 
