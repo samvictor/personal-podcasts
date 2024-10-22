@@ -6,9 +6,12 @@ from psycopg2.extras import RealDictCursor
 from flask import Flask, jsonify, send_file, Response, make_response
 from feedgen.feed import FeedGenerator
 import json
-import time
-from datetime import datetime, date
+from datetime import datetime
+from pytz import timezone
 import requests
+
+
+timezone = timezone('EST')
 
 # Load environment variables from .env.development.local file
 env_path = Path('.') / '.env.development.local'
@@ -191,7 +194,7 @@ def generate_rss_text():
             # print("file is", file) 
             # print("updated at", file.get("uploadedAt")) 
             # process time stamp into something more human readable
-            timestamp_str = file.get("uploadedAt").replace("Z", "-05:00")
+            timestamp_str = file.get("uploadedAt").replace("Z", "-09:00")
             dt = datetime.fromisoformat(timestamp_str)
             human_readable_date = dt.strftime("%B %d, %Y")
             human_readable_time = dt.strftime("%I:%M %p")
@@ -282,8 +285,8 @@ def get_speech():
     return "<p>Audio saved!</p>"
 
 
-@app.route('/api/blob')
-def blob():
+@app.route('/api/update-rss')
+def update_rss():
     rss_text = generate_rss_text()
 
     # write the rss to a file in the blob storage
@@ -320,9 +323,8 @@ def news_test():
 voice1 = "fable"
 voice2 = "nova"
 
-human_readable_datetime = datetime.now().strftime("%B %d, %Y at %I:%M %p")
-directive = f"""Create a very short podcast using these characters: "Samuel" and "Samantha". 
-You are making a daily podcast that has a new episode every day. Today's date is {human_readable_datetime}.
+directive = f """Create a very short podcast using these characters: "Samuel" and "Samantha". 
+You are making a daily podcast that has a new episode every day. 
 They should introduce themselves. As a podcast, it should be realistic, not fantastical. 
 Your response should only be valid JSON. It should be a list of dictionaries. 
 Each dictionary should contain 2 keys: "text" for what that character says and "voice" for which character is speaking. 
@@ -344,29 +346,9 @@ def eps_test():
     print(eps)
     return eps
  
-@app.route('/api/update') 
-def update():
-    # alloy_audio_content = get_audio_bytes_from_text(
-    #     text="Hello, my name is Alloy. Nice to meet you!",
-    #     voice="alloy"
-    # )
-
-    # shimmer_audio_content = get_audio_bytes_from_text(
-    #     text="Hi, I'm Shimmer. Nice to meet you, too!",
-    #     voice="shimmer"
-    # )
-
-    # echo_audio_content = get_audio_bytes_from_text(
-    #     text="Hey, guys! I'm Echo and I'm just happy to be here",
-    #     voice="echo"
-    # )
-
-    # text_list = ["Hello, my name is Alloy. Nice to meet you!", 
-    #              "Hi, I'm Shimmer. Nice to meet you, too!", 
-    #              "Hey, guys! I'm Echo and I'm just happy to be here"]
-    # voice_list = ["alloy", "shimmer", "echo"]
+@app.route('/api/new-episode') 
+def new_episode():
     #  ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
-
 
     url = ('https://newsapi.org/v2/top-headlines?'
        'country=us&'
@@ -394,32 +376,24 @@ def update():
         article_section_of_text_for_ai += f"Title: {this_article.get("title")}, Description: {this_article.get("description")}. "
 
     daily_jokes_and_fun_facts_section = " at the end there should be a Daily Joke section and a Daily Fun Fact section"
-
+    
+    date_as_text = datetime.now(timezone).strftime("%B %d, %Y")
+    time_as_text = datetime.now(timezone).strftime("%H:%M")
+    datetime_as_text = date_as_text + " at " + time_as_text
+    
+    current_datetime_section = f" Today's date is {datetime_as_text}. "
+    
     text_list = []
     voice_list = []
 
     script_text = message_ai(directive 
                              + article_section_of_text_for_ai 
                              + daily_jokes_and_fun_facts_section
-                             + previous_eps_section)
+                             + previous_eps_section
+                             + current_datetime_section
+                            )
     podcast_script = json.loads(script_text)
     print("podcast script is", json.dumps(podcast_script, indent=4)) 
-
-    # podcast_script = [
-    #     {"text": "Welcome to our podcast! I'm Alloy, and today we're discussing the latest trends in sustainable materials. It's a hot topic that affects us all.", "voice": "Alloy"},
-    #     {"text": "That's a fascinating topic, Alloy. I'm Echo, and I think it's important to reflect on how our choices impact the environment and future generations.", "voice": "Echo"},
-    #     {"text": "Absolutely, Echo! I’m Fable, and I believe that every trend tells a story about our values and priorities. Sustainability is not just a trend; it's a lifestyle.", "voice": "Fable"},
-    #     {"text": "Exactly, Fable! As someone who focuses on innovation, I'm Onyx. I'm excited to delve into how these materials can change industries, especially in construction and fashion.", "voice": "Onyx"},
-    #     {"text": "Nice points, everyone! I'm Nova, and I think we should also explore the role of technology in advancing sustainable practices, like recycling and renewable energy.", "voice": "Nova"},
-    #     {"text": "Great idea, Nova! I'm Shimmer, and I think how we communicate these changes can really make a difference. We need to inspire others to adopt these practices.", "voice": "Shimmer"},
-    #     {"text": "Speaking of communication, Echo, how can we ensure our messages resonate with different audiences?", "voice": "Alloy"},
-    #     {"text": "That's a crucial question, Alloy! One approach is to use storytelling. When people connect with a story, they're more likely to engage. Right, Fable?", "voice": "Echo"},
-    #     {"text": "Absolutely, Echo! Stories can illustrate the real impact of sustainable choices. We need to highlight both successes and challenges we face.", "voice": "Fable"},
-    #     {"text": "And let's not forget the role of social media in spreading these stories. I'm Onyx, and I think platforms give us a unique way to reach a wider audience.", "voice": "Onyx"},
-    #     {"text": "True, Onyx! I'm Nova, and it's exciting how influencers and advocates are leveraging these platforms to push for change.", "voice": "Nova"},
-    #     {"text": "And as we make these changes, we must celebrate our victories, no matter how small. Shimmering moments of progress can inspire others!", "voice": "Shimmer"},
-    #     {"text": "Well said, Shimmer. Let's keep the conversation going and encourage our listeners to think about their choices too. Thank you all for sharing your insights!", "voice": "Alloy"}
-    # ]
 
     for script_line in podcast_script:
         text_list.append(script_line.get("text"))
@@ -427,7 +401,6 @@ def update():
         
     audio_bytes = list(map(get_audio_bytes_from_text, text_list, voice_list))
 
-    # audio_bytes = [alloy_audio_content, shimmer_audio_content, echo_audio_content]
     delay_length_between_audio_clips = 2000
     def fade_in_audio(audio_bytes):
         # mute first and last 100 bytes of audio (set to 0)
@@ -476,9 +449,6 @@ def update():
     audio_file_name = "daily_update_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".mp3"
     file_path = "/audio/testUser/podcastId/" + audio_file_name
 
-
-    
-
     blob_response = vercel_blob.put(path=file_path,
         data=combined_audio_bytes,
         options={
@@ -490,9 +460,6 @@ def update():
     # print('file head is', file_head)
     audio_url = vercel_blob_base + file_path
 
-    month_as_text = date.today().strftime("%B")
-    date_as_text = month_as_text + " " + time.strftime(" %d, %Y")
-    time_as_text = time.strftime("%H:%M")
     db_insert(table_name="episodes", data={
         "podcast_id": 1, 
         "user_id": "testUser",
