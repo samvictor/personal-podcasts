@@ -202,7 +202,7 @@ def generate_rss_text():
             fe = fg.add_entry()
             fe.title("Sam's Daily Podcast for " + human_readable_date)
              
-            fe.enclosure(url=file.get('url'), length=int(file.get('size')/1000),  type=file.get('contentType'))
+            fe.enclosure(url=file.get('url'), length=int(file.get('size')/100),  type=file.get('contentType'))
             fe.pubDate(file.get('uploadedAt'))
             fe.link(href=file.get('url'))
             fe.guid(file.get('url'), permalink=True)  
