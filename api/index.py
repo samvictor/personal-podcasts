@@ -9,6 +9,7 @@ import json
 from datetime import datetime, timedelta
 from pytz import timezone
 import requests
+from bs4 import BeautifulSoup
 
 
 timezone = timezone('EST')
@@ -308,19 +309,18 @@ def cron():
 
 @app.route('/api/news-test')
 def news_test():
-    url = ('https://newsapi.org/v2/top-headlines?'
-       'country=us&'
-       'pageSize=5&'
-       f'apiKey={news_api_key}') 
+    url = ('https://abcnews.go.com/US/judge-tossed-trumps-classified-docs-case-list-proposed/story?id=114997807') 
 
     response = requests.get(url)
+    soup = BeautifulSoup(response.content, "html.parser") 
 
-    print("response is", response.json()) 
+    # print("response is", response.json()) 
+    print(soup.prettify())
 
-    first_article = response.json().get("articles")[0]
-    return f"<p>{first_article.get("title")}<br/>{first_article.get("description")}</p>"
+    # first_article = response.json().get("articles")[0]
+    return f"<p>{soup.get_text()}</p>"
 
-# "alloy", "echo", "fable", "nova", "shimmer".  
+# "alloy", "echo", "fable", "nova", "shimmer".    
 voice1 = "fable"
 voice2 = "nova"
 

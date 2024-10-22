@@ -8,3 +8,4 @@ vercel_blob==0.3.0
 feedgen==1.0.0
 pydub==0.25.1
 pytz==2024.2
+beautifulsoup4==4.12.3
