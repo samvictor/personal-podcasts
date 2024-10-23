@@ -1,7 +1,11 @@
 {
     "crons": [
         {
-            "path": "/api/new-episode",
+            "path": "/api/new-script",
+            "schedule": "55 8 * * *"
+        },
+        {
+            "path": "/api/make-audio-for-latest-ep",
             "schedule": "0 9 * * *"
         },
         {
