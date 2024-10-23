@@ -273,14 +273,14 @@ def message_ai_structured(message="", role="system", chat_history=[], structure=
     # print(response_message)
     return parsed_response
 
-def get_full_content_from_rss(url, num_articles = 7):
+def get_full_content_from_rss(url, num_articles = 5):
     # takes rss feed url
     # gets first n aricles
     # scrapes page
     # returns a list of dictionaries with all text on those pages
 
     # avoid overwhelming servers by putting a delay between requests
-    DELAY = 0.51
+    DELAY = 0.21
     
     feed = feedparser.parse(url)
     
@@ -383,7 +383,7 @@ def news_test():
 # "alloy", "echo", "fable", "nova", "shimmer".    
 voice1 = "fable"
 voice2 = "nova"
-podcast_length = "about 50 lines"
+podcast_length = "about 30 lines"
 
 directive = f"""Create a podcast that is {podcast_length} long using these characters: "Samuel" and "Samantha". 
 You are making a daily podcast that has a new episode every day. 
