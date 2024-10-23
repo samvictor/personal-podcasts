@@ -15,6 +15,10 @@ from bs4 import BeautifulSoup
 from pydantic import BaseModel
 from typing import Literal
 
+DELAY_BETWEEN_NEWS_FETCH = 0.21
+NUM_ARTICLES_PER_CATEGORY = 6
+PODCAST_LENGTH = "40 lines"
+
 
 timezone = timezone('EST')
 
@@ -273,15 +277,12 @@ def message_ai_structured(message="", role="system", chat_history=[], structure=
     # print(response_message)
     return parsed_response
 
-def get_full_content_from_rss(url, num_articles = 5):
+def get_full_content_from_rss(url, num_articles = NUM_ARTICLES_PER_CATEGORY):
     # takes rss feed url
     # gets first n aricles
     # scrapes page
     # returns a list of dictionaries with all text on those pages
 
-    # avoid overwhelming servers by putting a delay between requests
-    DELAY = 0.21
-    
     feed = feedparser.parse(url)
     
     if feed.status != 200:
@@ -302,7 +303,8 @@ def get_full_content_from_rss(url, num_articles = 5):
 
         full_content.append({"title": entry.title, "content": content})
         
-        time.sleep(DELAY) 
+        # avoid overwhelming servers by putting a delay between requests    
+        time.sleep(DELAY_BETWEEN_NEWS_FETCH) 
 
     return full_content
 # Flask app
@@ -383,9 +385,8 @@ def news_test():
 # "alloy", "echo", "fable", "nova", "shimmer".    
 voice1 = "fable"
 voice2 = "nova"
-podcast_length = "about 30 lines"
 
-directive = f"""Create a podcast that is {podcast_length} long using these characters: "Samuel" and "Samantha". 
+directive = f"""Create a podcast that is {PODCAST_LENGTH} long using these characters: "Samuel" and "Samantha". 
 You are making a daily podcast that has a new episode every day. 
 They should introduce themselves. As a podcast, it should be realistic, not fantastical. 
 Your response should only be valid JSON. It should be a list of dictionaries. 
