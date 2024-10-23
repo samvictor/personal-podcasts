@@ -351,9 +351,9 @@ def news_test():
 # "alloy", "echo", "fable", "nova", "shimmer".    
 voice1 = "fable"
 voice2 = "nova"
-podcast_length = "10 minute"
+podcast_length = "about 50 lines"
 
-directive = f"""Create a {podcast_length} podcast using these characters: "Samuel" and "Samantha". 
+directive = f"""Create a podcast that is {podcast_length} long using these characters: "Samuel" and "Samantha". 
 You are making a daily podcast that has a new episode every day. 
 They should introduce themselves. As a podcast, it should be realistic, not fantastical. 
 Your response should only be valid JSON. It should be a list of dictionaries. 
@@ -387,29 +387,36 @@ def new_episode():
     
     headline_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/topstories') 
 
-    headlines_section_of_text_for_ai = """ During the podcast, have the characters talk about these articles. 
+    headlines_section_of_text_for_ai = """ There should be a 'Headlines' section of the podcast.
+    During this section, have the characters talk about these articles. 
     They are top headlines and the content of the article: """
     for this_article in headline_articles:
         headlines_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
     
     
-    sports_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/sportsheadlines') 
+    # sports_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/sportsheadlines') 
 
-    sports_section_of_text_for_ai = """ Here are some latest sports articles: """
-    for this_article in sports_articles:
-        sports_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    # sports_section_of_text_for_ai = """ There should be a 'Sports' section of the podcast.
+    # During this section, have the characters talk about these articles. 
+    # They are some latest sports articles: """
+    # for this_article in sports_articles:
+    #     sports_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
     
     
     tech_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/technologyheadlines') 
 
-    tech_section_of_text_for_ai = """ Here are some latest technology articles: """
+    tech_section_of_text_for_ai = """ There should be a 'Tech' section of the podcast.
+    During this section, have the characters talk about these articles. 
+    They are some latest technology articles: """
     for this_article in tech_articles:
         tech_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
     
     
     entertainment_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/entertainmentheadlines') 
 
-    entertainment_section_of_text_for_ai = """ Here are some latest entertainment articles: """
+    entertainment_section_of_text_for_ai = """ There should be a 'Entertainment' section of the podcast.
+    During this section, have the characters talk about these articles. 
+    They are some latest entertainment articles: """
     for this_article in entertainment_articles:
         entertainment_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
     
