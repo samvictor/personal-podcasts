@@ -16,8 +16,8 @@ from pydantic import BaseModel
 from typing import Literal
 
 DELAY_BETWEEN_NEWS_FETCH = 0.21
-NUM_ARTICLES_PER_CATEGORY = 4
-PODCAST_LENGTH = "80 lines"
+NUM_ARTICLES_PER_CATEGORY = 3
+PODCAST_LENGTH = "70 lines"
 
 
 timezone = timezone('EST')
