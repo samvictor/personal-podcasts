@@ -9,3 +9,4 @@ feedgen==1.0.0
 pydub==0.25.1
 pytz==2024.2
 beautifulsoup4==4.12.3
+feedparser==6.0.11

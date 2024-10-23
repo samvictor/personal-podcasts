@@ -1,6 +1,8 @@
 import os
+import time
 from dotenv import load_dotenv
 from pathlib import Path
+import feedparser
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask import Flask, jsonify, send_file, Response, make_response
@@ -239,6 +241,38 @@ def message_ai(message="", role="system", chat_history=[]):
     # print(response_message)
     return response_message
 
+def get_full_content_from_rss(url, num_articles = 7):
+    # takes rss feed url
+    # gets first n aricles
+    # scrapes page
+    # returns a list of dictionaries with all text on those pages
+
+    # avoid overwhelming servers by putting a delay between requests
+    DELAY = 0.51
+    
+    feed = feedparser.parse(url)
+    
+    if feed.status != 200:
+        raise Exception("Failed to get RSS feed. Status code:", feed.status) 
+
+    # [print(json.dumps(entry, indent=4)) for entry in feed.entries]
+
+    all_entries = feed.entries
+
+    full_content = []
+
+    for entry in all_entries[0:num_articles]:
+        response = requests.get(entry.link)
+        soup = BeautifulSoup(response.content, "html.parser") 
+        content = soup.get_text()
+
+        # print("content for", entry.title, "time is", time.time())
+
+        full_content.append({"title": entry.title, "content": content})
+        
+        time.sleep(DELAY) 
+
+    return full_content
 # Flask app
 app = Flask(__name__)
 
@@ -309,22 +343,17 @@ def cron():
 
 @app.route('/api/news-test')
 def news_test():
-    url = ('https://abcnews.go.com/US/judge-tossed-trumps-classified-docs-case-list-proposed/story?id=114997807') 
+    full_content = get_full_content_from_rss('https://abcnews.go.com/abcnews/topstories') 
 
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, "html.parser") 
+    return f"<p style='white-space:pre-wrap'>{json.dumps(full_content, indent=4)}</p>" 
 
-    # print("response is", response.json()) 
-    print(soup.prettify())
-
-    # first_article = response.json().get("articles")[0]
-    return f"<p>{soup.get_text()}</p>"
 
 # "alloy", "echo", "fable", "nova", "shimmer".    
 voice1 = "fable"
 voice2 = "nova"
+podcast_length = "10 minute"
 
-directive = f"""Create a very short podcast using these characters: "Samuel" and "Samantha". 
+directive = f"""Create a {podcast_length} podcast using these characters: "Samuel" and "Samantha". 
 You are making a daily podcast that has a new episode every day. 
 They should introduce themselves. As a podcast, it should be realistic, not fantastical. 
 Your response should only be valid JSON. It should be a list of dictionaries. 
@@ -344,37 +373,60 @@ def open_test():
 @app.route('/api/eps-test')
 def eps_test():
     eps = get_last_n_episodes(100)
-    print(eps)
-    return eps
+    trimmed_eps = [{
+        "created_at": this_ep.get("created_at"), 
+        "script_text": this_ep.get("script_text")
+        } for this_ep in eps]
+    print(trimmed_eps)
+    return trimmed_eps
  
 @app.route('/api/new-episode') 
 def new_episode():
     #  ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
 
-    url = ('https://newsapi.org/v2/top-headlines?'
-       'country=us&'
-       'pageSize=5&'
-       f'apiKey={news_api_key}') 
-
-    response = requests.get(url)
-
-    print("response is", response.json()) 
-
     
-    # TODO get last n episodes
+    headline_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/topstories') 
+
+    headlines_section_of_text_for_ai = """ During the podcast, have the characters talk about these articles. 
+    They are top headlines and the content of the article: """
+    for this_article in headline_articles:
+        headlines_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    
+    
+    sports_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/sportsheadlines') 
+
+    sports_section_of_text_for_ai = """ Here are some latest sports articles: """
+    for this_article in sports_articles:
+        sports_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    
+    
+    tech_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/technologyheadlines') 
+
+    tech_section_of_text_for_ai = """ Here are some latest technology articles: """
+    for this_article in tech_articles:
+        tech_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    
+    
+    entertainment_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/entertainmentheadlines') 
+
+    entertainment_section_of_text_for_ai = """ Here are some latest entertainment articles: """
+    for this_article in entertainment_articles:
+        entertainment_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    
+
 
     previous_eps = get_last_n_episodes(100)
-    previous_eps_as_text = json.dumps(previous_eps, default=str)
+    # trimming eps to help ai focus on important content
+    trimmed_eps = [{
+        "created_at": this_ep.get("created_at"), 
+        "script_text": this_ep.get("script_text")
+        } for this_ep in previous_eps]
+    previous_eps_as_text = json.dumps(trimmed_eps, default=str)
     previous_eps_section = """Here are the last few episodes. 
     Look at the scripts and make sure you don't repeat the same jokes and fun facts. 
     Also, feel free to make references to the things you talked about yesterday: """ + previous_eps_as_text
 
 
-    articles = response.json().get("articles")
-    article_section_of_text_for_ai = """ During the podcast, have the characters talk about these articles. 
-    They are top headlines and the description of the article: """
-    for this_article in articles:
-        article_section_of_text_for_ai += f"Title: {this_article.get("title")}, Description: {this_article.get("description")}. "
 
     daily_jokes_and_fun_facts_section = " at the end there should be a Daily Joke section and a Daily Fun Fact section"
     
@@ -388,10 +440,13 @@ def new_episode():
     voice_list = []
 
     script_text = message_ai(directive 
-                             + article_section_of_text_for_ai 
+                             + current_datetime_section
+                             + headlines_section_of_text_for_ai
+                             + sports_section_of_text_for_ai
+                             + tech_section_of_text_for_ai
+                             + entertainment_section_of_text_for_ai 
                              + daily_jokes_and_fun_facts_section
                              + previous_eps_section
-                             + current_datetime_section
                             )
     podcast_script = json.loads(script_text)
     print("podcast script is", json.dumps(podcast_script, indent=4)) 
