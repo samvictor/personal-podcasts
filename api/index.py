@@ -95,7 +95,7 @@ key_options = {
     "podcasts": ["user_id", "title", "description", 
                     "ai_directives_by_section", "rss_url", "cover_image_url"],
     "episodes": ["cover_image_url", "podcast_id", "user_id", "title", "description", 
-                    "file_name", "url", "duration", "script_text"],
+                    "file_name", "url", "duration", "script_text", "audio_generated"],
     "users": ["user_id", "username", "podcast_ids"]
 }
 
@@ -587,6 +587,7 @@ def new_episode():
         "url": audio_url,
         "duration": audio_duration,
         "script_text": podcast_response.model_dump_json(),
+        "audio_generated": True,
     })
     rss_text = generate_rss_text()
     # write the rss to a file in the blob storage
