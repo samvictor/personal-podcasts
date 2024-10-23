@@ -15,9 +15,9 @@ from bs4 import BeautifulSoup
 from pydantic import BaseModel
 from typing import Literal
 
-DELAY_BETWEEN_NEWS_FETCH = 0.21
+DELAY_BETWEEN_NEWS_FETCH = 0.51
 NUM_ARTICLES_PER_CATEGORY = 3
-PODCAST_LENGTH = "20 lines"
+PODCAST_LENGTH = "45 lines"
 
 
 timezone = timezone('EST')
