@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 from pytz import timezone
 import requests
 from bs4 import BeautifulSoup
+from pydantic import BaseModel
+from typing import Literal
 
 
 timezone = timezone('EST')
@@ -241,6 +243,36 @@ def message_ai(message="", role="system", chat_history=[]):
     # print(response_message)
     return response_message
 
+
+class Line(BaseModel):
+    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    text: str
+class Podcast(BaseModel):
+    script: list[Line]
+
+def message_ai_structured(message="", role="system", chat_history=[], structure=Podcast):
+    # chat history must be a list of dicts. Each dict must have role and system
+    # not including latest message
+
+    message_list = [{"role": role, "content": message}] + chat_history
+
+    # try:
+
+    completion = openai_client.beta.chat.completions.parse(
+        model="gpt-4o-mini",
+        messages=message_list,
+        response_format=structure,
+    )
+
+    parsed_response = completion.choices[0].message.parsed
+
+    # except Exception as e:
+    #     print("error getting message from ai", e)
+    #     raise Exception("error getting message from AI")
+
+    # print(response_message)
+    return parsed_response
+
 def get_full_content_from_rss(url, num_articles = 7):
     # takes rss feed url
     # gets first n aricles
@@ -379,6 +411,21 @@ def eps_test():
         } for this_ep in eps]
     print(trimmed_eps)
     return trimmed_eps
+
+
+# @app.route('/api/struct-test')
+# def struct_test():
+#     completion = openai_client.beta.chat.completions.parse(
+#         model="gpt-4o-mini",
+#         messages=[
+#             {"role": "system", "content": "make a short podcast"},
+#         ],
+#         response_format=Podcast,
+#     )
+
+#     podcast = completion.choices[0].message.parsed
+#     print("event is", podcast.model_dump_json()) 
+#     return  ["text:"+line.text + " voice:"+line.voice  for line in podcast.script]
  
 @app.route('/api/new-episode') 
 def new_episode():
@@ -446,7 +493,7 @@ def new_episode():
     text_list = []
     voice_list = []
 
-    script_text = message_ai(directive 
+    podcast_response = message_ai_structured(directive 
                              + current_datetime_section
                              + headlines_section_of_text_for_ai
                             #  + sports_section_of_text_for_ai
@@ -455,12 +502,17 @@ def new_episode():
                              + daily_jokes_and_fun_facts_section
                              + previous_eps_section
                             )
-    podcast_script = json.loads(script_text)
-    print("podcast script is", json.dumps(podcast_script, indent=4)) 
+    try:
+        podcast_script = podcast_response.script
+    except Exception:
+        print("error getting script from podcast:", podcast_response)
+        raise Exception("Error getting script from podcast:", podcast_response) 
+
+    print("podcast script is", podcast_response.model_dump_json()) 
 
     for script_line in podcast_script:
-        text_list.append(script_line.get("text"))
-        voice_list.append(script_line.get("voice").lower())
+        text_list.append(script_line.text)
+        voice_list.append(script_line.voice.lower())
         
     audio_bytes = list(map(get_audio_bytes_from_text, text_list, voice_list))
 
@@ -531,7 +583,7 @@ def new_episode():
         "file_name": audio_file_name,
         "url": audio_url,
         "duration": audio_duration,
-        "script_text": script_text,
+        "script_text": podcast_response.model_dump_json(),
     })
     rss_text = generate_rss_text()
     # write the rss to a file in the blob storage
