@@ -186,7 +186,10 @@ def get_audio_bytes_from_text(text="test", voice="alloy"):
 
 
 def generate_rss_text():
-    blobFiles = vercel_blob.list({"prefix": "audio/"}).get('blobs')
+    blobFiles = vercel_blob.list({
+        "prefix": "audio/",
+        'limit': '5',
+        }).get('blobs')
     # print('response is', blobFiles)
     fg = FeedGenerator()
     fg.load_extension('podcast')
@@ -790,11 +793,11 @@ def latest_ep_audio():
         "audio_generated": True,
     })
 
-    # rss_text = generate_rss_text()
-    # # write the rss to a file in the blob storage
-    # vercel_blob.put(path='/rss/testUser/podcastId/testRss.xml', data=rss_text, options={
-    #             "addRandomSuffix": "false",
-    #         })
+    rss_text = generate_rss_text()
+    # write the rss to a file in the blob storage
+    vercel_blob.put(path='/rss/testUser/podcastId/testRss.xml', data=rss_text, options={
+                "addRandomSuffix": "false",
+            })
     
     # send the rss as a response
     # response = make_response(rss_text)

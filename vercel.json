@@ -7,10 +7,6 @@
         {
             "path": "/api/make-audio-for-latest-ep",
             "schedule": "0 9 * * *"
-        },
-        {
-            "path": "/api/update-rss",
-            "schedule": "5 9 * * *"
         }
     ]
 }
