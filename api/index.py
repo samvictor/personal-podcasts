@@ -470,7 +470,7 @@ def new_episode():
     
 
 
-    previous_eps = get_last_n_episodes(100)
+    previous_eps = get_last_n_episodes(5)
     # trimming eps to help ai focus on important content
     trimmed_eps = [{
         "created_at": this_ep.get("created_at"), 
@@ -478,12 +478,14 @@ def new_episode():
         } for this_ep in previous_eps]
     previous_eps_as_text = json.dumps(trimmed_eps, default=str)
     previous_eps_section = """Here are the last few episodes. 
-    Look at the scripts and make sure you don't repeat the same jokes and fun facts. 
+    Look at the scripts and try not to repeat things from previous episodes. 
     Also, feel free to make references to the things you talked about yesterday: """ + previous_eps_as_text
 
 
 
-    daily_jokes_and_fun_facts_section = " at the end there should be a Daily Joke section and a Daily Fun Fact section"
+    fun_facts_section = """ At the end there should be a Fun Fact section where they say something interesting or a fun fact about today.
+    If today is a holiday, they could wish the listener a happy [holiday] or national [xyz] day. 
+    Or they could mention something that happened on this day years ago.  """
     
     date_as_text = datetime.now(timezone).strftime("%B %d, %Y")
     time_as_text = datetime.now(timezone).strftime("%H:%M")
@@ -495,12 +497,12 @@ def new_episode():
     voice_list = []
 
     podcast_response = message_ai_structured(directive 
-                             + current_datetime_section
                              + headlines_section_of_text_for_ai
                             #  + sports_section_of_text_for_ai
                              + tech_section_of_text_for_ai
                              + entertainment_section_of_text_for_ai 
-                             + daily_jokes_and_fun_facts_section
+                             + current_datetime_section
+                             + fun_facts_section
                              + previous_eps_section
                             )
     try:
