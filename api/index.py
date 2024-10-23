@@ -17,7 +17,7 @@ from typing import Literal
 
 DELAY_BETWEEN_NEWS_FETCH = 0.21
 NUM_ARTICLES_PER_CATEGORY = 3
-PODCAST_LENGTH = "40 lines"
+PODCAST_LENGTH = "30 lines"
 
 
 timezone = timezone('EST')
@@ -59,8 +59,8 @@ def get_all_podcasts():
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute('SELECT * FROM podcasts;')
             result = cursor.fetchall()
-            for row in result:
-                print(row)
+            # for row in result:
+            #     print(row)
             cursor.close()
             return jsonify(result)
     finally:
@@ -81,8 +81,8 @@ def get_last_n_episodes(num_episodes):
                            LIMIT %s;
                            """, (num_episodes, ))
             result = cursor.fetchall()
-            for row in result:
-                print(row)
+            # for row in result:
+            #     print(row)
             cursor.close()
             episodes = [dict(row) for row in result] 
             return episodes
@@ -511,7 +511,7 @@ def new_episode():
         print("error getting script from podcast:", podcast_response)
         raise Exception("Error getting script from podcast:", podcast_response) 
 
-    print("podcast script is", podcast_response.model_dump_json()) 
+    # print("podcast script is", podcast_response.model_dump_json()) 
 
     for script_line in podcast_script:
         text_list.append(script_line.text)
