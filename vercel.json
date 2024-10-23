@@ -2,11 +2,11 @@
     "crons": [
         {
             "path": "/api/new-episode",
-            "schedule": "0 8 * * *"
+            "schedule": "0 9 * * *"
         },
         {
             "path": "/api/update-rss",
-            "schedule": "0 9 * * *"
+            "schedule": "5 9 * * *"
         }
     ]
 }
