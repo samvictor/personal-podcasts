@@ -449,7 +449,7 @@ def new_episode():
     script_text = message_ai(directive 
                              + current_datetime_section
                              + headlines_section_of_text_for_ai
-                             + sports_section_of_text_for_ai
+                            #  + sports_section_of_text_for_ai
                              + tech_section_of_text_for_ai
                              + entertainment_section_of_text_for_ai 
                              + daily_jokes_and_fun_facts_section
