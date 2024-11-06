@@ -297,18 +297,24 @@ def get_full_content_from_rss(url, num_articles = NUM_ARTICLES_PER_CATEGORY):
 
     full_content = []
 
-    for entry in all_entries[0:num_articles]:
-        response = requests.get(entry.link)
-        soup = BeautifulSoup(response.content, "html.parser") 
-        content = soup.get_text()
+    local_num_articles = num_articles
+    for entry in all_entries[0:local_num_articles]:
+        try:
+            response = requests.get(entry.link)
+            soup = BeautifulSoup(response.content, "html.parser") 
+            content = soup.get_text()
 
-        # print("content for", entry.title, "time is", time.time())
+            # print("content for", entry.title, "time is", time.time())
 
-        full_content.append({"title": entry.title, "content": content})
-        
-        # avoid overwhelming servers by putting a delay between requests    
-        time.sleep(DELAY_BETWEEN_NEWS_FETCH) 
+            full_content.append({"title": entry.title, "content": content})
+            
+            # avoid overwhelming servers by putting a delay between requests    
+        except Exception as e:
+            print("Error getting ", entry.link, ": ", e)
+            # since we couldn't get this article, fetch another article to take its place
+            local_num_articles = min(len(all_entries) - 1, local_num_articles + 1)
 
+        time.sleep(DELAY_BETWEEN_NEWS_FETCH)
     return full_content
 # Flask app
 app = Flask(__name__)
@@ -434,43 +440,54 @@ def eps_test():
 @app.route('/api/new-episode') 
 def new_episode():
     #  ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    headlines_section_of_text_for_ai = ""
+    sports_section_of_text_for_ai = ""
+    tech_section_of_text_for_ai = ""
+    entertainment_section_of_text_for_ai = ""
 
-    
-    headline_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/topstories') 
+    try:
+        headline_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/topstories') 
 
-    headlines_section_of_text_for_ai = """ There should be a 'Headlines' section of the podcast.
-    During this section, have the characters talk about these articles. 
-    They are top headlines and the content of the article: """
-    for this_article in headline_articles:
-        headlines_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
-    
-    
-    # sports_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/sportsheadlines') 
+        headlines_section_of_text_for_ai = """ There should be a 'Headlines' section of the podcast.
+        During this section, have the characters talk about these articles. 
+        They are top headlines and the content of the article: """
+        for this_article in headline_articles:
+            headlines_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    except Exception as e:
+        print("Failed to get article content from https://abcnews.go.com/abcnews/topstories:", e)
 
-    # sports_section_of_text_for_ai = """ There should be a 'Sports' section of the podcast.
-    # During this section, have the characters talk about these articles. 
-    # They are some latest sports articles: """
-    # for this_article in sports_articles:
-    #     sports_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
-    
-    
-    tech_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/technologyheadlines') 
+    # try:     
+    #     # sports_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/sportsheadlines') 
 
-    tech_section_of_text_for_ai = """ There should be a 'Tech' section of the podcast.
-    During this section, have the characters talk about these articles. 
-    They are some latest technology articles: """
-    for this_article in tech_articles:
-        tech_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    #     # sports_section_of_text_for_ai = """ There should be a 'Sports' section of the podcast.
+    #     # During this section, have the characters talk about these articles. 
+    #     # They are some latest sports articles: """
+    #     # for this_article in sports_articles:
+    #     #     sports_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    # except Exception as e:
+    #     print("Failed to get article content from https://abcnews.go.com/abcnews/sportsheadlines:", e)
     
-    
-    entertainment_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/entertainmentheadlines') 
+    try:
+        tech_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/technologyheadlines') 
 
-    entertainment_section_of_text_for_ai = """ There should be a 'Entertainment' section of the podcast.
-    During this section, have the characters talk about these articles. 
-    They are some latest entertainment articles: """
-    for this_article in entertainment_articles:
-        entertainment_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+        tech_section_of_text_for_ai = """ There should be a 'Tech' section of the podcast.
+        During this section, have the characters talk about these articles. 
+        They are some latest technology articles: """
+        for this_article in tech_articles: 
+            tech_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    except Exception as e:
+        print("Failed to get article content from https://abcnews.go.com/abcnews/technologyheadlines:", e)
     
+    try:
+        entertainment_articles = get_full_content_from_rss('https://abcnews.go.com/abcnews/entertainmentheadlines') 
+
+        entertainment_section_of_text_for_ai = """ There should be a 'Entertainment' section of the podcast.
+        During this section, have the characters talk about these articles. 
+        They are some latest entertainment articles: """
+        for this_article in entertainment_articles:
+            entertainment_section_of_text_for_ai += f"Title: {this_article.get("title")}, Content: {this_article.get("content")}. "
+    except Exception as e:
+        print("Failed to get article content from https://abcnews.go.com/abcnews/entertainmentheadlines:", e)
 
 
     previous_eps = get_last_n_episodes(5)
