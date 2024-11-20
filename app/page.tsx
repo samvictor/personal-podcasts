@@ -128,6 +128,7 @@ export default function Home() {
             Instantly deploy your Next.js site to a shareable URL with Vercel.
           </p>
         </a>
+        Firebase! version 0.1
       </div>
     </main>
   )
