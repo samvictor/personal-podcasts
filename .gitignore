@@ -2,18 +2,19 @@
 
 # dependencies
 /node_modules
+/app_hosting/node_modules
 /.pnp
 .pnp.js
 
 # testing
-/coverage
+/app_hosting/coverage
 
 # next.js
-/.next/
-/out/
+/app_hosting/.next/
+/app_hosting/out/
 
 # production
-/build
+*/build
 
 # misc
 .DS_Store
