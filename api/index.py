@@ -17,7 +17,7 @@ from typing import Literal
 
 DELAY_BETWEEN_NEWS_FETCH = 0.51
 NUM_ARTICLES_PER_CATEGORY = 3
-PODCAST_LENGTH = "60 lines"
+PODCAST_LENGTH = "50 lines"
 
 
 timezone = timezone('EST')
