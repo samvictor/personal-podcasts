@@ -1,4 +1,4 @@
-#!C:\Users\Sam\dev\personal-podcasts\app_hosting\functions\venv\Scripts\python.exe
+#!C:\Users\Sam\dev\personal-podcasts\functions\venv\Scripts\python.exe
 # -*- coding: utf-8 -*-
 # Copyright 2024 Google LLC
 #

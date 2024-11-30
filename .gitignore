@@ -105,4 +105,6 @@ yarn-error.log*
 next-env.d.ts
 __pycache__
 
-/functions/venv/Lib
+/functions/env/Lib
+
+personal-podcasts-2-afbec90dcc43.json
