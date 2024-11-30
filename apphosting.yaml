@@ -23,3 +23,6 @@ runConfig:
 
 # variable TEST_SECRET
 # secret: testSecret
+
+# variable OPENAI_KEY
+# secret: OPENAI_KEY

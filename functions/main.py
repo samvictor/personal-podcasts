@@ -4,20 +4,20 @@
 # pip install -r functions\requirements.txt
 # Deploy with `firebase deploy`
 # import os
-# import time
+import time
 # from pathlib import Path
-# import feedparser
+import feedparser
 # import psycopg2
 # from psycopg2.extras import RealDictCursor
 # from flask import Flask, jsonify, send_file, Response, make_response
 # from feedgen.feed import FeedGenerator
-# import json
+import json
 # from datetime import datetime, timedelta
 # from pytz import timezone
-# import requests
-# from bs4 import BeautifulSoup
-# from pydantic import BaseModel
-# from typing import Literal
+import requests
+from bs4 import BeautifulSoup
+from pydantic import BaseModel
+from typing import Literal
 
 from firebase_functions import https_fn
 from firebase_admin import initialize_app
@@ -31,18 +31,20 @@ initialize_app()
 
 @https_fn.on_request(secrets=[testSecret])
 def on_request_example(req: https_fn.Request) -> https_fn.Response:
+    print("open", testSecret.value)
     return https_fn.Response("Hello world! Secret is: " + testSecret.value) 
 
 
 DELAY_BETWEEN_NEWS_FETCH = 0.51
 NUM_ARTICLES_PER_CATEGORY = 3
-PODCAST_LENGTH = "60 lines"
+PODCAST_LENGTH = "6 lines"
 
 
 # timezone = timezone('EST')
 
-from openai import OpenAI
 from firebase_admin import firestore
+from openai import OpenAI
+# print(OPENAI_KEY.value)
 
 # # functions 
 # def get_db_connection():
@@ -76,7 +78,6 @@ from firebase_admin import firestore
 
 @https_fn.on_request()
 def get_latest_episodes(request):
-    # openai_client = OpenAI(api_key=OPENAI_KEY)
 
     db = firestore.client()
     num_episodes = int(request.args.get('numEpisodes', 5))  # Default to 5
@@ -254,93 +255,74 @@ def get_latest_episodes(request):
 #     return fg.rss_str(pretty=True)
 
 
-# def message_ai(message="", role="system", chat_history=[]):
-#     # chat history must be a list of dicts. Each dict must have role and system
-#     # not including latest message
-
-#     message_list = [{"role": role, "content": message}] + chat_history
-
-#     response_message = ""
-#     # try:
-#     completion = openai_client.chat.completions.create(
-#         model="gpt-4o-mini",
-#         messages=message_list
-#     )
-
-#     response_message = completion.choices[0].message.content
-#     # except Exception as e:
-#     #     print("error getting message from ai", e)
-#     #     raise Exception("error getting message from AI")
-
-#     # print(response_message)
-#     return response_message
 
 
-# class Line(BaseModel):
-#     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
-#     text: str
-# class Podcast(BaseModel):
-#     script: list[Line]
+class Line(BaseModel):
+    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+    text: str
+class Podcast(BaseModel):
+    script: list[Line]
 
-# def message_ai_structured(message="", role="system", chat_history=[], structure=Podcast):
-#     # chat history must be a list of dicts. Each dict must have role and system
-#     # not including latest message
+def message_ai_structured(openai_client, message="", role="system", chat_history=[], structure=Podcast):
+    # chat history must be a list of dicts. Each dict must have role and system
+    # not including latest message
 
-#     message_list = [{"role": role, "content": message}] + chat_history
+    message_list = [{"role": role, "content": message}] + chat_history
 
-#     # try:
+    # try:
 
-#     completion = openai_client.beta.chat.completions.parse(
-#         model="gpt-4o-mini",
-#         messages=message_list,
-#         response_format=structure,
-#     )
 
-#     parsed_response = completion.choices[0].message.parsed
+    completion = openai_client.beta.chat.completions.parse(
+        model="gpt-4o-mini",
+        messages=message_list,
+        response_format=structure,
+    )
 
-#     # except Exception as e:
-#     #     print("error getting message from ai", e)
-#     #     raise Exception("error getting message from AI")
+    parsed_response = completion.choices[0].message.parsed
 
-#     # print(response_message)
-#     return parsed_response
+    # except Exception as e:
+    #     print("error getting message from ai", e)
+    #     raise Exception("error getting message from AI")
 
-# def get_full_content_from_rss(url, num_articles = NUM_ARTICLES_PER_CATEGORY):
-#     # takes rss feed url
-#     # gets first n aricles
-#     # scrapes page
-#     # returns a list of dictionaries with all text on those pages
+    # print(response_message)
+    return parsed_response
 
-#     feed = feedparser.parse(url)
+def get_full_content_from_rss(url, num_articles = NUM_ARTICLES_PER_CATEGORY):
+    # takes rss feed url
+    # gets first n aricles
+    # scrapes page
+    # returns a list of dictionaries with all text on those pages
+
+    feed = feedparser.parse(url)
     
-#     if feed.status != 200:
-#         raise Exception("Failed to get RSS feed. Status code:", feed.status) 
+    if feed.status != 200:
+        raise Exception("Failed to get RSS feed. Status code:", feed.status) 
 
-#     # [print(json.dumps(entry, indent=4)) for entry in feed.entries]
+    # [print(json.dumps(entry, indent=4)) for entry in feed.entries]
 
-#     all_entries = feed.entries
+    all_entries = feed.entries
 
-#     full_content = []
+    full_content = []
 
-#     local_num_articles = num_articles
-#     for entry in all_entries[0:local_num_articles]:
-#         try:
-#             response = requests.get(entry.link)
-#             soup = BeautifulSoup(response.content, "html.parser") 
-#             content = soup.get_text()
+    local_num_articles = num_articles
+    for entry in all_entries[0:local_num_articles]:
+        try:
+            response = requests.get(entry.link)
+            soup = BeautifulSoup(response.content, "html.parser") 
+            content = soup.get_text()
 
-#             # print("content for", entry.title, "time is", time.time())
+            # print("content for", entry.title, "time is", time.time())
 
-#             full_content.append({"title": entry.title, "content": content})
+            full_content.append({"title": entry.title, "content": content})
             
-#             # avoid overwhelming servers by putting a delay between requests    
-#         except Exception as e:
-#             print("Error getting ", entry.link, ": ", e)
-#             # since we couldn't get this article, fetch another article to take its place
-#             local_num_articles = min(len(all_entries) - 1, local_num_articles + 1)
+            # avoid overwhelming servers by putting a delay between requests    
+        except Exception as e:
+            print("Error getting ", entry.link, ": ", e)
+            # since we couldn't get this article, fetch another article to take its place
+            local_num_articles = min(len(all_entries) - 1, local_num_articles + 1)
 
-#         time.sleep(DELAY_BETWEEN_NEWS_FETCH)
-#     return full_content
+        time.sleep(DELAY_BETWEEN_NEWS_FETCH)
+    return full_content
 # # Flask app
 # app = Flask(__name__)
 
@@ -409,33 +391,35 @@ def get_latest_episodes(request):
 #     print('cron job running')
 #     return jsonify({'message': 'Cron job executed successfully'})
 
-# @app.route('/api/news-test')
-# def news_test():
-#     full_content = get_full_content_from_rss('https://abcnews.go.com/abcnews/topstories') 
+@https_fn.on_request()
+def news_test(req: https_fn.Request) -> https_fn.Response:
+    full_content = get_full_content_from_rss('https://abcnews.go.com/abcnews/topstories') 
 
-#     return f"<p style='white-space:pre-wrap'>{json.dumps(full_content, indent=4)}</p>" 
+    return https_fn.Response(f"<p style='white-space:pre-wrap'>{json.dumps(full_content, indent=4)}</p>")
 
 
-# # "alloy", "echo", "fable", "nova", "shimmer".    
-# voice1 = "fable"
-# voice2 = "nova"
+# "alloy", "echo", "fable", "nova", "shimmer".    
+voice1 = "fable"
+voice2 = "nova"
 
-# directive = f"""Create a podcast that is {PODCAST_LENGTH} long using these characters: "Samuel" and "Samantha". 
-# You are making a daily podcast that has a new episode every day. 
-# They should introduce themselves. As a podcast, it should be realistic, not fantastical. 
-# Your response should only be valid JSON. It should be a list of dictionaries. 
-# Each dictionary should contain 2 keys: "text" for what that character says and "voice" for which character is speaking. 
-# The voice for "Samuel" should be "{voice1}", and the voice for "Samantha" should be "{voice2}".
-# "{voice1}" and "{voice2}" are your only options for the contents of the "voice" field.
-# I will be putting your response directly into a json parser so don't add anything else other than valid json."""
+directive = f"""Create a podcast that is {PODCAST_LENGTH} long using these characters: "Samuel" and "Samantha". 
+You are making a daily podcast that has a new episode every day. 
+They should introduce themselves. As a podcast, it should be realistic, not fantastical. 
+Your response should only be valid JSON. It should be a list of dictionaries. 
+Each dictionary should contain 2 keys: "text" for what that character says and "voice" for which character is speaking. 
+The voice for "Samuel" should be "{voice1}", and the voice for "Samantha" should be "{voice2}".
+"{voice1}" and "{voice2}" are your only options for the contents of the "voice" field.
+I will be putting your response directly into a json parser so don't add anything else other than valid json."""
 
-# @app.route('/api/open-test')
-# def open_test():
-#     response_message = message_ai(directive)
+@https_fn.on_request(secrets=[OPENAI_KEY])
+def open_test(req: https_fn.Request) -> https_fn.Response: 
+    
+    openai_client = OpenAI(api_key=OPENAI_KEY.value)
+    response_message = message_ai_structured(openai_client, directive)
 
-#     print(json.loads(response_message))
-#     # print(response_message)
-#     return f"<p>{response_message}</p>"
+    print(response_message)
+    # print(response_message)
+    return https_fn.Response(f"<p>{response_message}</p>")
 
 # @app.route('/api/eps-test')
 # def eps_test():
