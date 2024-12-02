@@ -1,7 +1,8 @@
 # Welcome to Cloud Functions for Firebase for Python!
 # To get started, simply uncomment the below code or create your own.
-# envp\Scripts\activate
+# .\functions\venv\Scripts\activate
 # pip install -r functions\requirements.txt
+# test with firebase emulators:start --only functions
 # Deploy with `firebase deploy`
 # import os
 import time
@@ -22,17 +23,40 @@ from typing import Literal
 from firebase_functions import https_fn
 from firebase_admin import initialize_app
 from firebase_functions.params import SecretParam
+from firebase_admin import firestore
+from firebase_admin import credentials
+from firebase_admin import storage
+from openai import OpenAI
 
 testSecret = SecretParam('TEST_SECRET')
 OPENAI_KEY = SecretParam('OPENAI_KEY')
 
-initialize_app()
 
+
+initialize_app(options={
+    'storageBucket': 'personal-podcasts-2.firebasestorage.app'
+})
+
+bucket = storage.bucket()
+
+@https_fn.on_request()
+def storage_test(req: https_fn.Request) -> https_fn.Response:
+    #The path to file
+    # blob = bucket.blob("rss/testUser/podcastId/testRss.xml")
+    # blob.make_public()
+    # return https_fn.Response(f"public urls is {blob.public_url}")
+
+    blobs = bucket.list_blobs(prefix="rss/testUser/podcastId/")
+    retText = " HEY ".join(map(lambda b: f"name: {b.name}, url: {b.public_url}", blobs))
+    # for blob in blobs:
+    #     retText += "\n" + blob.name
+    return https_fn.Response(f"blobs found {retText}")
 
 @https_fn.on_request(secrets=[testSecret])
 def on_request_example(req: https_fn.Request) -> https_fn.Response:
     print("open", testSecret.value)
     return https_fn.Response("Hello world! Secret is: " + testSecret.value) 
+
 
 
 DELAY_BETWEEN_NEWS_FETCH = 0.51
@@ -42,8 +66,6 @@ PODCAST_LENGTH = "6 lines"
 
 # timezone = timezone('EST')
 
-from firebase_admin import firestore
-from openai import OpenAI
 # print(OPENAI_KEY.value)
 
 # # functions 
@@ -352,10 +374,6 @@ def get_full_content_from_rss(url, num_articles = NUM_ARTICLES_PER_CATEGORY):
 # @app.route("/api/podcasts")
 # def get_podcasts():
 #    return get_all_podcasts()
-
-# @app.route("/api/python")
-# def hello_world():
-#     return "<p>Hello, World!</p>"
 
 # @app.route("/api/speech")
 # def get_speech():
