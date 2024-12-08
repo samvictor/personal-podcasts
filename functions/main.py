@@ -37,10 +37,10 @@ initialize_app(options={
     'storageBucket': 'personal-podcasts-2.firebasestorage.app'
 })
 
-bucket = storage.bucket()
 
 @https_fn.on_request()
 def storage_test(req: https_fn.Request) -> https_fn.Response:
+    bucket = storage.bucket()
     #The path to file
     # blob = bucket.blob("rss/testUser/podcastId/testRss.xml")
     # blob.make_public()
@@ -66,41 +66,28 @@ PODCAST_LENGTH = "6 lines"
 
 # timezone = timezone('EST')
 
-# print(OPENAI_KEY.value)
-
 # # functions 
-# def get_db_connection():
-#     db_url = os.environ.get("POSTGRES_URL_NON_POOLING")
-#     if not db_url:
-#         raise ValueError("POSTGRES_URL_NON_POOLING environment variable is not set")
-    
-#     try:
-#         connection = psycopg2.connect(db_url)
-#         return connection
-#     except Exception as e:
-#         print(f"\033[91mError connecting to database: {str(e)}\033[0m")
-#         return None
 
-# def get_all_podcasts():
-#     connection = get_db_connection()
-#     if not connection:
-#         raise Exception("Unable to connect to the database")
-#         return None
-#     try:
-#         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-#             cursor.execute('SELECT * FROM podcasts;')
-#             result = cursor.fetchall()
-#             # for row in result:
-#             #     print(row)
-#             cursor.close()
-#             return jsonify(result)
-#     finally:
-#         connection.close()
+@https_fn.on_request()
+def get_n_podcasts(request, num_podcasts=100):
+    db = firestore.client()
+    num_podcasts = int(request.args.get('numPodcasts', 100))  # Default to 5
+
+    podcasts = []
+    docs = db.collection('podcasts').order_by('created_at', direction='DESCENDING').limit(num_podcasts).stream()
+    
+    podcasts = list(map(lambda doc : {
+            'id': doc.id,
+            'data': doc.to_dict()
+        }, docs))
+
+    print ("podcasts is", podcasts)
+
+    return podcasts
 
 
 @https_fn.on_request()
 def get_latest_episodes(request):
-
     db = firestore.client()
     num_episodes = int(request.args.get('numEpisodes', 5))  # Default to 5
 
@@ -114,104 +101,72 @@ def get_latest_episodes(request):
 
     return episodes
 
-# def get_last_n_episodes(num_episodes):
-#     if not type(num_episodes) == int:
-#         raise TypeError("num_episodes must be an int")
-#     connection = get_db_connection()
-#     if not connection:
-#         raise Exception("Unable to connect to the database")
-    
-#     try:
-#         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-#             cursor.execute("""
-#                            SELECT * FROM episodes 
-#                            ORDER BY created_at DESC
-#                            LIMIT %s;
-#                            """, (num_episodes, ))
-#             result = cursor.fetchall()
-#             # for row in result:
-#             #     print(row)
-#             cursor.close()
-#             episodes = [dict(row) for row in result] 
-#             return episodes
-#     finally:
-#         connection.close()
 
-
-# table_name_options = ["podcasts", "users", "episodes"]
-# key_options = {
-#     "podcasts": ["user_id", "title", "description", 
-#                     "ai_directives_by_section", "rss_url", "cover_image_url"],
-#     "episodes": ["cover_image_url", "podcast_id", "user_id", "title", "description", 
-#                     "file_name", "url", "duration", "script_text", "audio_generated"],
-#     "users": ["user_id", "username", "podcast_ids"]
+# podcast example:
+# {
+#     "ai_directive": "make a short podcast.",
+#     "cover_image_url": "example.net",
+#     "created_at": "Sun, 08 Dec 2024 01:23:31 GMT",
+#     "description": "A short summary of recent events.",
+#     "podcast_id": "PIiVCmdQfcGeSE7BZMj5",
+#     "rss_url": "example.com",
+#     "title": "Daily Summary",
+#     "updated_at": "Sun, 08 Dec 2024 01:24:55 GMT",
+#     "user_id": "testUser"
 # }
 
-# def db_sanitize_table_name(table_name="podcasts"):
-#     # check if table_name is valid to avoid sql injection
-#     if table_name not in table_name_options:
-#         raise Exception("Invalid table name")
-    
-# def db_sanitize_keys(table_name="podcasts", data={}):
-#     # check if data keys are valid to avoid sql injection
-#     table_items = data.items()
-#     for key, _ in table_items:
-#         if key not in key_options[table_name]:
-#             raise Exception(f"Invalid key, {key} not in {key_options[table_name]}")
+# episode example:
+# {
+#     "audio_generated": false,
+#     "created_at": "Mon, 25 Nov 2024 01:29:01 GMT",
+#     "description": "This is your daily podcast fo",
+#     "duration": 5,
+#     "episode_id": "dzziKg8DEKyg5zliIwDR",
+#     "file_name": "daily_update_2024-11-08_",
+#     "podcast_id": "1",
+#     "script_text": "{\"script\":[{\"voice\":\"fable\",\"text\":\"hi\"}]}",
+#     "title": "Daily Podcast for November",
+#     "updated_at": "Mon, 25 Nov 2024 01:29:28 GMT",
+#     "url": "https://1rfdbdyvforthaxq.publ",
+#     "user_id": "testUser"
+# },
 
-# def db_insert(table_name="podcasts", data={}):
-#     # sanitize the table name and data keys
-#     db_sanitize_table_name(table_name)
-#     db_sanitize_keys(table_name, data)
+collection_name_to_id_key = {
+    "episodes" : "episode_id",
+    "podcasts" : "podcast_id", 
+}
+def db_insert(collection_name="episodes", data={}, id=None):    
+    # if id not supplied, get id from data supplied
+    if (id == None):
+        # try:
+        id = data[collection_name_to_id_key[collection_name]]
+        # except Exception as e:    
+        #     print ("error getting id from data", e)
+    db = firestore.client()    
+    db.collection(collection_name).document(id).set(data, merge=True)
 
-#     # connect to vercel postgres database using psycopg2
-#     connection = get_db_connection()
-#     if not connection:
-#         raise Exception("Unable to connect to the database")
-    
-#     # get keys and values sepearatly. guaranteed to be in matching order
-#     table_items = data.items()
-#     keys = ", ".join([key for key, _ in table_items])
-#     values = tuple(value for _, value in table_items)
-#     placeholders = ", ".join(["%s" for _ in values])
+def db_update(collection_name="podcasts", data={}, id=None):    
+    data = {
+    #     "audio_generated": false,
+    #     "created_at": "Mon, 25 Nov 2024 01:29:01 GMT",
+    #     "description": "This is your daily podcast fo",
+    #     "duration": 5,
+        "podcast_id": "dzziKg8DEKyg5zliIwDR",
+    #     "file_name": "daily_update_2024-11-08_",
+    #     "podcast_id": "1",
+    #     "script_text": "{\"script\":[{\"voice\":\"fable\",\"text\":\"hi\"}]}",
+        "title": "Daily Podcast for December",
+        "updated_at": firestore.SERVER_TIMESTAMP,
+        # "url": "https://1rfdbdyvforthaxq.publ",
+        # "user_id": "testUser"
+    }
 
-#     try:
-#         cursor = connection.cursor()
-#         cursor.execute(f"INSERT INTO {table_name} ({keys}) VALUES ({placeholders})",
-#             values)
-#         connection.commit()
-#     finally:
-#         cursor.close()
-#         connection.close()
+    # if id not supplied, get id from data supplied
+    if (id == None):
+        id = data[collection_name_to_id_key[collection_name]]
 
-        
-
-# def db_update(table_name="podcasts", id_column_name="podcast_id", id=0, data={}):
-#     # sanitize the table name and data keys
-#     db_sanitize_table_name(table_name)
-#     db_sanitize_keys(table_name, data)
-    
-#     # connect to vercel postgres database using psycopg2
-#     connection = get_db_connection()
-#     if not connection:
-#         raise Exception("Unable to connect to the database")
-    
-#     # get keys and values sepearatly. guaranteed to be in matching order
-#     table_items = data.items()
-#     # we're looking for something that looks like: "field1=%s, field2=%s, ..."
-#     keys = "=%s, ".join([key for key, _ in table_items])
-#     values = tuple(value for _, value in table_items)
-#     values_with_id = values + (id,)
-
-#     try:
-#         cursor = connection.cursor()
-#         # =%s after {keys} because the join won't add it after the last key
-#         cursor.execute(f"UPDATE {table_name} SET {keys}=%s WHERE {id_column_name} = %s",
-#             values_with_id)
-#         connection.commit()
-#     finally:
-#         cursor.close()
-#         connection.close()
+    db = firestore.client()    
+    db.collection(collection_name).document(id).update(data)
 
 
 # voiceOptions = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
