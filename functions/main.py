@@ -11,10 +11,10 @@ import feedparser
 # import psycopg2
 # from psycopg2.extras import RealDictCursor
 # from flask import Flask, jsonify, send_file, Response, make_response
-# from feedgen.feed import FeedGenerator
+from feedgen.feed import FeedGenerator
 import json
-# from datetime import datetime, timedelta
-# from pytz import timezone
+from datetime import datetime, timedelta
+from pytz import timezone
 import requests
 from bs4 import BeautifulSoup
 from pydantic import BaseModel
@@ -67,7 +67,7 @@ NUM_ARTICLES_PER_CATEGORY = 3
 PODCAST_LENGTH = "6 lines"
 
 
-# timezone = timezone('EST')
+timezone = timezone('EST')
 
 # # functions 
 
@@ -195,48 +195,51 @@ def get_audio_bytes_from_text(openai_client, text="test", voice="alloy"):
     return response.content
 
 
-# def generate_rss_text():
-#     blobFiles = vercel_blob.list({
-#         "prefix": "audio/",
-#         # 'limit': '5',
-#         }).get('blobs')
-#     # print('response is', blobFiles)
-#     fg = FeedGenerator()
-#     fg.load_extension('podcast')
-#     fg.id('testUsersPodcast')
-#     fg.title('Sam\'s Personal Podcast')
-#     fg.author( {'name':'Personal Podcasts','email':'samshandymansolutions@gmail.com'} )
-#     fg.link( href='https://personal-podcasts.vercel.app', rel='alternate' )
-#     fg.logo('http://example.com/logo.jpg')
-#     fg.subtitle('Personal Podcasts by Sam')
-#     # fg.link( href='http://larskiesow.de/test.atom', rel='self' ) 
-#     fg.language('en')
-#     for file in blobFiles: 
-#         if file.get('contentType') and file.get('contentType')[0:5] == 'audio':
-#             # print("file is", file) 
-#             # print("updated at", file.get("uploadedAt")) 
-#             # process time stamp into something more human readable
-#             timestamp_str = file.get("uploadedAt").replace("Z", "+00:00")
-#             dt = datetime.fromisoformat(timestamp_str) - timedelta(hours = 4)
-#             human_readable_date = dt.strftime("%B %d, %Y")
-#             human_readable_time = dt.strftime("%I:%M %p")
+@https_fn.on_request()
+def generate_rss_text(request):
+    bucket = storage.bucket()
+    blobFiles = bucket.list_blobs(prefix="audio/testUser/podcastId/")
+    print('response is', blobFiles)
 
-#             fe = fg.add_entry()
-#             fe.title("Sam's Daily Podcast for " + human_readable_date)
+    fg = FeedGenerator()
+    fg.load_extension('podcast')
+    fg.id('testUsersPodcast')
+    fg.title('Sam\'s Personal Podcast')
+    fg.author( {'name':'Personal Podcasts','email':'samshandymansolutions@gmail.com'} )
+    fg.link( href='https://personal-podcasts.vercel.app', rel='alternate' )
+    fg.logo('http://example.com/logo.jpg')
+    fg.subtitle('Personal Podcasts by Sam')
+    fg.language('en')
+    for file in blobFiles: 
+        print_in_red(file.public_url)
+        print_in_red(file.content_type)
+        if file.content_type and file.content_type[0:5] == 'audio':
+        # if file.content_type and file.content_type[0:5] == 'text/':
+            print("file is", file) 
+            print("updated at", type(file.time_created)) 
+            # process time stamp into something more human readable
+            # timestamp_str = file.time_created #.replace("Z", "+00:00")
+            # dt = datetime.fromisoformat(timestamp_str) - timedelta(hours = 4)
+            dt = file.time_created - timedelta(hours = 4)
+            human_readable_date = dt.strftime("%B %d, %Y")
+            human_readable_time = dt.strftime("%I:%M %p")
+
+            fe = fg.add_entry()
+            fe.title("Sam's Daily Podcast for " + human_readable_date)
              
-#             fe.enclosure(url=file.get('url'), length=int(file.get('size')/100),  type=file.get('contentType'))
-#             fe.pubDate(file.get('uploadedAt'))
-#             fe.link(href=file.get('url'))
-#             fe.guid(file.get('url'), permalink=True)  
-#             fe.description(f"""Sam's Daily Podcast for {human_readable_date}. 
-# This podcast was created entirely by AI. 
-# It covers the latest news stories and headlines. 
-# It was created at {human_readable_time}. 
-# The code to create it was written by Sam Inniss.
-# Enjoy!  😎
-#             """)
-#             # fe.author(name=file.author.name, email=file.author.email)
-#     return fg.rss_str(pretty=True)
+            fe.enclosure(url=file.public_url, length=int(file.size),  type=file.content_type)
+            fe.pubDate(file.time_created)
+            fe.link(href=file.public_url)
+            fe.guid(file.public_url, permalink=True)  
+            fe.description(f"""Sam's Daily Podcast for {human_readable_date}. 
+This podcast was created entirely by AI. 
+It covers the latest news stories and headlines. 
+It was created at {human_readable_time}. 
+The code to create it was written by Sam Inniss.
+Enjoy!  😎
+            """)
+            # fe.author(name=file.author.name, email=file.author.email)
+    return fg.rss_str(pretty=True)
 
 
 
@@ -373,8 +376,8 @@ def get_speech(request):
     blob = bucket.blob("audio/testUser/podcastId/testAudio2.wav")
     
     # Upload the audio bytes
-    # blob.upload_from_string(audio_bytes, content_type="audio/mpeg")  # Specify the content type
-    blob.upload_from_string(audio_bytes)
+    blob.upload_from_string(audio_bytes, content_type="audio/wav") 
+    # blob.upload_from_string(audio_bytes)
     blob.make_public()
 
     return https_fn.Response(f"Public URL is {blob.public_url}")
@@ -382,7 +385,7 @@ def get_speech(request):
 
 # @app.route('/api/update-rss')
 # def update_rss():
-#     rss_text = generate_rss_text()
+    # rss_text = generate_rss_text()
 
 #     # write the rss to a file in the blob storage
 #     vercel_blob.put(path='/rss/testUser/podcastId/testRss.xml', data=rss_text, options={
