@@ -38,6 +38,9 @@ initialize_app(options={
 })
 
 
+def print_in_red(text):
+    print(f"\033[91m{text}\033[0m")
+
 @https_fn.on_request()
 def storage_test(req: https_fn.Request) -> https_fn.Response:
     bucket = storage.bucket()
@@ -135,17 +138,21 @@ collection_name_to_id_key = {
     "episodes" : "episode_id",
     "podcasts" : "podcast_id", 
 }
-def db_insert(collection_name="episodes", data={}, id=None):    
+def db_insert(data, collection_name="episodes", id=None):    
     # if id not supplied, get id from data supplied
     if (id == None):
         # try:
         id = data[collection_name_to_id_key[collection_name]]
         # except Exception as e:    
         #     print ("error getting id from data", e)
+    
     db = firestore.client()    
+
+    # merge true for safety to avoid accidentally deleting data
     db.collection(collection_name).document(id).set(data, merge=True)
 
-def db_update(collection_name="podcasts", data={}, id=None):    
+# @https_fn.on_request()
+def db_update(data, collection_name="podcasts", id=None):    
     data = {
     #     "audio_generated": false,
     #     "created_at": "Mon, 25 Nov 2024 01:29:01 GMT",
@@ -169,23 +176,23 @@ def db_update(collection_name="podcasts", data={}, id=None):
     db.collection(collection_name).document(id).update(data)
 
 
-# voiceOptions = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
-# def get_audio_bytes_from_text(text="test", voice="alloy"):
-#     response = openai_client.audio.speech.create(
-#         model="tts-1",
-#         voice=voice,
-#         input=text,
-#         response_format="wav"
-#     )
+voiceOptions = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+def get_audio_bytes_from_text(openai_client, text="test", voice="alloy"):
+    response = openai_client.audio.speech.create(
+        model="tts-1",
+        voice=voice,
+        input=text,
+        response_format="wav"
+    )
 
-#     # print("content is", response.content)
+    # print("content is", response.content)
 
     
-#     # audio_content = BytesIO(response.content)
-#     # print('content is', audio_content)
-#     # audio_content.seek(0)
-#     # return audio_content.read()
-#     return response.content
+    # audio_content = BytesIO(response.content)
+    # print('content is', audio_content)
+    # audio_content.seek(0)
+    # return audio_content.read()
+    return response.content
 
 
 # def generate_rss_text():
@@ -264,6 +271,7 @@ def message_ai_structured(openai_client, message="", role="system", chat_history
     # print(response_message)
     return parsed_response
 
+
 def get_full_content_from_rss(url, num_articles = NUM_ARTICLES_PER_CATEGORY):
     # takes rss feed url
     # gets first n aricles
@@ -282,13 +290,26 @@ def get_full_content_from_rss(url, num_articles = NUM_ARTICLES_PER_CATEGORY):
     full_content = []
 
     local_num_articles = num_articles
+    # print ("all entries length", len(all_entries))
+    # TODO: fix this. When an article fails to load, we need to get another article to replace it
+    # right now, no article replaces it because incrementing local_num_articles doesn't work
     for entry in all_entries[0:local_num_articles]:
+        # print("local num articles before", local_num_articles)
         try:
             response = requests.get(entry.link)
             soup = BeautifulSoup(response.content, "html.parser") 
             content = soup.get_text()
 
-            # print("content for", entry.title, "time is", time.time())
+            # print("content for", entry.title, "time is", time.time()) 
+
+            # skip live stream
+            if entry.title == "LIVE:  ABC News Live":
+                # since we couldn't get this article, fetch another article to take its place
+                local_num_articles = min(len(all_entries) - 1, local_num_articles + 1)
+                # print("local num articles after because of live", local_num_articles)
+                time.sleep(DELAY_BETWEEN_NEWS_FETCH)
+
+                continue
 
             full_content.append({"title": entry.title, "content": content})
             
@@ -297,12 +318,11 @@ def get_full_content_from_rss(url, num_articles = NUM_ARTICLES_PER_CATEGORY):
             print("Error getting ", entry.link, ": ", e)
             # since we couldn't get this article, fetch another article to take its place
             local_num_articles = min(len(all_entries) - 1, local_num_articles + 1)
+            # print("local num articles after because of exception", local_num_articles)
 
         time.sleep(DELAY_BETWEEN_NEWS_FETCH)
     return full_content
-# # Flask app
-# app = Flask(__name__)
-
+    
 # @app.route("/api/test-insert")
 # def test_insert():
 #     db_insert(table_name="podcasts", data={
@@ -330,18 +350,34 @@ def get_full_content_from_rss(url, num_articles = NUM_ARTICLES_PER_CATEGORY):
 # def get_podcasts():
 #    return get_all_podcasts()
 
-# @app.route("/api/speech")
-# def get_speech():
-#     audio_bytes = get_audio_bytes_from_text(
-#         text="Hello, hello? Is this thing on? this is a test!",
-#         voice="alloy"
-#     )
-#     vercel_blob.put(path='/audio/testUser/podcastId/testAudio.mp3',
-#         data=audio_bytes,
-#         options={
-#             "addRandomSuffix": "false",
-#         })
-#     return "<p>Audio saved!</p>"
+
+@https_fn.on_request(secrets=[OPENAI_KEY])
+def get_speech(request):
+    openai_client = OpenAI(api_key=OPENAI_KEY.value)
+
+    # print_in_red("before get_audio_bytes_from_text")
+    audio_bytes = get_audio_bytes_from_text(
+        openai_client=openai_client,
+        text="Hello, hello? Is this thing on? this is a test!",
+        voice="alloy"
+    )
+
+    # print_in_red("after get_audio_bytes_from_text")
+    
+    # Ensure audio_bytes is in bytes format
+    if not isinstance(audio_bytes, bytes):
+        return https_fn.Response("Error: audio_bytes is not in bytes format", status=400)
+
+    # Upload to Google Cloud Storage
+    bucket = storage.bucket()
+    blob = bucket.blob("audio/testUser/podcastId/testAudio2.wav")
+    
+    # Upload the audio bytes
+    # blob.upload_from_string(audio_bytes, content_type="audio/mpeg")  # Specify the content type
+    blob.upload_from_string(audio_bytes)
+    blob.make_public()
+
+    return https_fn.Response(f"Public URL is {blob.public_url}")
 
 
 # @app.route('/api/update-rss')
