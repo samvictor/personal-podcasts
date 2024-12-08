@@ -612,7 +612,7 @@ def eps_test(req):
 #     audio_duration  =0
 
 
-#     audio_file_name = "daily_update_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".mp3"
+#     audio_file_name = "daily_update_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".wav"
 #     file_path = "/audio/testUser/podcastId/" + audio_file_name
 
 #     blob_response = vercel_blob.put(path=file_path,
@@ -652,8 +652,14 @@ def eps_test(req):
 
  
 @https_fn.on_request(secrets=[OPENAI_KEY])
-@scheduler_fn.on_schedule(schedule="every day 02:00")
-def new_episode(req: https_fn.Request) -> https_fn.Response: 
+def new_episode_https(req: https_fn.Request) -> https_fn.Response: 
+    return new_episode()
+
+@scheduler_fn.on_schedule(schedule="every day 02:00", secrets=[OPENAI_KEY])
+def new_episode_schedule():
+    return new_episode()
+
+def new_episode(req):
     openai_client = OpenAI(api_key=OPENAI_KEY.value)
     # generate script
 
@@ -718,9 +724,8 @@ def new_episode(req: https_fn.Request) -> https_fn.Response:
     
     current_datetime_section = f" Today's date is {datetime_as_text}. "
     
-    text_list = []
-    voice_list = []
-
+    print_in_red("about to generate script")
+    print(previous_eps_section)
     podcast_response = message_ai_structured(openai_client=openai_client,
                             message=directive 
                              + headlines_section_of_text_for_ai
@@ -731,6 +736,7 @@ def new_episode(req: https_fn.Request) -> https_fn.Response:
                              + fun_facts_section
                              + previous_eps_section
                             )
+    print_in_red("script generated")
     try:
         podcast_script = podcast_response.script
     except Exception:
@@ -739,9 +745,6 @@ def new_episode(req: https_fn.Request) -> https_fn.Response:
 
     # print("podcast script is", podcast_response.model_dump_json()) 
 
-    for script_line in podcast_script:
-        text_list.append(script_line.text)
-        voice_list.append(script_line.voice.lower())
     
     episode_id = "ep_" + str(round(time.time() * 1000)) + "_" + str(random.randrange(0, 9999))
 
@@ -791,7 +794,23 @@ def new_episode(req: https_fn.Request) -> https_fn.Response:
     get_audio_bound_client = partial(get_audio_bytes_from_text, openai_client)
 
     # for every line in script, generate audio
-    audio_bytes = list(map(get_audio_bound_client, text_list, voice_list))
+    text_list = []
+    voice_list = []
+
+    # for script_line in podcast_script:
+    #     text_list.append(script_line.text)
+    #     voice_list.append(script_line.voice.lower())
+
+    audio_bytes = []
+    for script_line in podcast_script:
+        # print_in_red("turned this to speech:")
+        # print(script_line.text)
+        # avoid rate limit
+        # time.sleep(DELAY_BETWEEN_NEWS_FETCH)
+        audio_bytes.append(get_audio_bytes_from_text(openai_client=openai_client, 
+                            text=script_line.text,
+                            voice=script_line.voice.lower()))
+    # list(map(get_audio_bound_client, text_list, voice_list))
 
     delay_length_between_audio_clips = 2000
     def fade_in_audio(audio_bytes):
@@ -838,7 +857,7 @@ def new_episode(req: https_fn.Request) -> https_fn.Response:
     audio_duration  =0
 
 
-    audio_file_name = "daily_update_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".mp3"
+    audio_file_name = "daily_update_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".wav"
     file_path = "audio/testUser/podcastId/" + audio_file_name
 
     
