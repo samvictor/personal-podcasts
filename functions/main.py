@@ -655,7 +655,7 @@ def eps_test(req):
 def new_episode_https(req: https_fn.Request) -> https_fn.Response: 
     return new_episode(req=req)
 
-@scheduler_fn.on_schedule(schedule="every day 02:00", secrets=[OPENAI_KEY])
+@scheduler_fn.on_schedule(schedule="every day 09:00", secrets=[OPENAI_KEY])
 def new_episode_schedule(event: scheduler_fn.ScheduledEvent):
     return new_episode(event=event)
 
