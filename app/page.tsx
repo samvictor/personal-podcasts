@@ -1,5 +1,6 @@
 'use client'
 // test with "yarn dev"
+// push to github to deploy
 
 import Image from 'next/image'
 import Link from 'next/link'
