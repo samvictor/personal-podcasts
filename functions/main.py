@@ -653,13 +653,13 @@ def eps_test(req):
  
 @https_fn.on_request(secrets=[OPENAI_KEY])
 def new_episode_https(req: https_fn.Request) -> https_fn.Response: 
-    return new_episode()
+    return new_episode(req=req)
 
 @scheduler_fn.on_schedule(schedule="every day 02:00", secrets=[OPENAI_KEY])
-def new_episode_schedule():
-    return new_episode()
+def new_episode_schedule(event: scheduler_fn.ScheduledEvent):
+    return new_episode(event=event)
 
-def new_episode(req):
+def new_episode(req=None, event=None):
     openai_client = OpenAI(api_key=OPENAI_KEY.value)
     # generate script
 
