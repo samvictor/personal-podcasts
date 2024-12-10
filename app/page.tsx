@@ -8,16 +8,8 @@ import { useEffect, useState } from 'react';
 
 export default function Home() {
   
-  const [data, setData] = useState(null);
   
-  useEffect(() => {
-    fetch('/api/apiExample')
-      .then(response => response.json())
-      .then(json => setData(json))
-      .catch(error => console.error(error));
-  }, []);
 
-  console.log("data is", data);
   
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
@@ -28,6 +20,8 @@ export default function Home() {
         <br/>
         https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/rss/testUser/podcastId/testRss.xml
         <br/>
+        <a href="https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/audio/testUser/podcastId/daily_update_2024-12-10_09-01-31.wav"
+          >Listen to an Example Here</a>
         Firebase! version 0.4
       </div>
     </main>
