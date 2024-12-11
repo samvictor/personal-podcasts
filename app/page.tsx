@@ -22,6 +22,7 @@ export default function Home() {
         <br/>
         <a href="https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/audio/testUser/podcastId/daily_update_2024-12-10_09-01-31.wav"
           >Listen to an Example Here</a>
+        <br/><br/>
         Firebase! version 0.4
       </div>
     </main>
