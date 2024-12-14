@@ -12,19 +12,17 @@ export default function Home() {
 
   
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        In your podcast player, find a setting that says something like "Follow a Show by URL..."
-        <br/>
-        Enter this link:
-        <br/>
-        https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/rss/testUser/podcastId/testRss.xml
-        <br/>
-        <a href="https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/audio/testUser/podcastId/daily_update_2024-12-10_09-01-31.wav"
-          >Listen to an Example Here</a>
-        <br/><br/>
-        Firebase! version 0.4
-      </div>
+    <main className="p-24">
+      <h1 className='text-xl mb-6'>Personal Podcasts</h1>
+      In your podcast player, find a setting that says something like "Follow a Show by URL..."
+      <br/>
+      Enter this link:
+      https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/rss/testUser/podcastId/testRss.xml
+      <br/><br/>
+      <a className='underline' href="https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/audio/testUser/podcastId/daily_update_2024-12-14_09-01-36.wav"
+        >Listen to an Example Here</a>
+      <br/><br/>
+      Version 0.5
     </main>
   )
 }
