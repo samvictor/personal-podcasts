@@ -462,7 +462,7 @@ def new_episode(req=None, event=None):
     time_as_text = datetime.now(timezone).strftime("%H:%M")
     datetime_as_text = date_as_text + " at " + time_as_text
     
-    current_datetime_section = f" Today's date is {datetime_as_text}. "
+    current_datetime_section = f" Today's date is {datetime_as_text}. Make sure you greet the listener at the start of the podcast. In your greeting mention the current day of the week and the date. E.g. 'Today is Monday, June 1st, 2025. Happy Monday! "
     
     print_in_red("about to generate script")
     print(previous_eps_section)
