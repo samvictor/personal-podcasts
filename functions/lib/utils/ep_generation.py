@@ -51,7 +51,7 @@ def build_full_directive():
     
     current_datetime_section = f""" Today's date is {datetime_as_text}. 
     Make sure you greet the listener at the start of the podcast. In your greeting mention the current day of the week and the date. 
-    E.g. 'Today is Monday, June 1st, 2025. Happy Monday! """
+    E.g. 'Today is Monday, June 1st, 2025. Happy Monday! If today is a holiday, wish them a happy whatever holiday it is. """
 
     return (directive 
                     + headlines_section_of_text_for_ai
