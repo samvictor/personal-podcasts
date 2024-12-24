@@ -10,7 +10,7 @@ datetime_as_text = date_as_text + " at " + time_as_text
 
 DELAY_BETWEEN_NEWS_FETCH = 0.51
 NUM_ARTICLES_PER_CATEGORY = 3
-PODCAST_LENGTH = "6 lines"
+PODCAST_LENGTH = "70 lines"
 
 
 TEST = "test2"

@@ -63,7 +63,6 @@ def new_episode(req=None, event=None):
 
     
     # create a new function with openai built in
-    openai_client = OpenAI(api_key=OPENAI_KEY.value)
     
     combined_audio_bytes = get_audio_from_script(podcast_script, openai_client)
     
