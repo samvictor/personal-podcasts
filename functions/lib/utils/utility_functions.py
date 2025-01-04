@@ -141,8 +141,8 @@ def generate_rss_text():
             # print("file is", file) 
             # print("updated at", type(file.time_created)) 
             dt = file.time_created - timedelta(hours = 4)
-            human_readable_date = date_as_text
-            human_readable_time = time_as_text
+            human_readable_date = dt.strftime("%B %d, %Y")
+            human_readable_time = dt.strftime("%I:%M %p")
 
             fe = fg.add_entry()
             fe.title("Sam's Daily Podcast for " + human_readable_date)
