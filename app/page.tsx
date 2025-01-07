@@ -19,7 +19,7 @@ export default function Home() {
       Enter this link:
       https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/rss/testUser/podcastId/testRss.xml
       <br/><br/>
-      <a className='underline' href="https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/audio/testUser/podcastId/daily_update_2024-12-14_09-01-36.wav"
+      <a className='underline' href="https://storage.googleapis.com/personal-podcasts-2.firebasestorage.app/audio/testUser/podcastId/daily_update_January%2007%2C%202025_04%3A00.wav"
         >Listen to an Example Here</a>
       <br/><br/>
       Version 0.5
